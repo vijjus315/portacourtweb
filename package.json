@@ -1,0 +1,27 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "devDependencies": {
+        "@popperjs/core": "^2.11.6",
+        "@vitejs/plugin-react": "^4.3.0",
+        "@vitejs/plugin-vue": "^4.5.0",
+        "axios": "^1.6.4",
+        "backstopjs": "^6.3.25",
+        "bootstrap": "^5.2.3",
+        "laravel-vite-plugin": "^1.0.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "sass": "^1.56.1",
+        "vite": "^5.0.0",
+        "vue": "^3.2.37"
+    },
+    "dependencies": {
+        "@reduxjs/toolkit": "^2.9.0",
+        "react-redux": "^9.2.0",
+        "react-router-dom": "^7.8.2"
+    }
+}

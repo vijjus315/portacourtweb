@@ -1,0 +1,81 @@
+{
+  "testSuite": "BackstopJS",
+  "tests": [
+    {
+      "pair": {
+        "reference": "..\\bitmaps_reference\\backstop_default_Home_Page_0_document_0_desktop.png",
+        "test": "..\\bitmaps_test\\20250909-112445\\backstop_default_Home_Page_0_document_0_desktop.png",
+        "selector": "document",
+        "fileName": "backstop_default_Home_Page_0_document_0_desktop.png",
+        "label": "Home Page",
+        "requireSameDimensions": true,
+        "misMatchThreshold": 0.1,
+        "url": "http://localhost:5173/",
+        "referenceUrl": "https://www.portacourts.com/",
+        "expect": 0,
+        "viewportLabel": "desktop",
+        "engineErrorMsg": "Unexpected module status 5. Cannot require() ES Module D:\\office\\portacourt\\backstop_data\\engine_scripts\\puppet\\onBefore.js because it is not yet fully loaded. This may be caused by a race condition if the module is simultaneously dynamically import()-ed via Promise.all(). Try await-ing the import() sequentially in a loop instead. (from D:\\office\\portacourt\\node_modules\\backstopjs\\core\\util\\runPuppet.js)\nThis is caused by either a bug in Node.js or incorrect usage of Node.js internals.\nPlease open an issue with this stack trace at https://github.com/nodejs/node/issues\n",
+        "diff": {
+          "isSameDimensions": true,
+          "dimensionDifference": {
+            "width": 0,
+            "height": 0
+          },
+          "misMatchPercentage": "0.00"
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "pair": {
+        "reference": "..\\bitmaps_reference\\backstop_default_Home_Page_0_document_1_phone.png",
+        "test": "..\\bitmaps_test\\20250909-112445\\backstop_default_Home_Page_0_document_1_phone.png",
+        "selector": "document",
+        "fileName": "backstop_default_Home_Page_0_document_1_phone.png",
+        "label": "Home Page",
+        "requireSameDimensions": true,
+        "misMatchThreshold": 0.1,
+        "url": "http://localhost:5173/",
+        "referenceUrl": "https://www.portacourts.com/",
+        "expect": 0,
+        "viewportLabel": "phone",
+        "engineErrorMsg": "module is not defined",
+        "diff": {
+          "isSameDimensions": true,
+          "dimensionDifference": {
+            "width": 0,
+            "height": 0
+          },
+          "misMatchPercentage": "0.00"
+        }
+      },
+      "status": "pass"
+    },
+    {
+      "pair": {
+        "reference": "..\\bitmaps_reference\\backstop_default_Home_Page_0_document_2_tablet.png",
+        "test": "..\\bitmaps_test\\20250909-112445\\backstop_default_Home_Page_0_document_2_tablet.png",
+        "selector": "document",
+        "fileName": "backstop_default_Home_Page_0_document_2_tablet.png",
+        "label": "Home Page",
+        "requireSameDimensions": true,
+        "misMatchThreshold": 0.1,
+        "url": "http://localhost:5173/",
+        "referenceUrl": "https://www.portacourts.com/",
+        "expect": 0,
+        "viewportLabel": "tablet",
+        "engineErrorMsg": "Unexpected module status 5. Cannot require() ES Module D:\\office\\portacourt\\backstop_data\\engine_scripts\\puppet\\onBefore.js because it is not yet fully loaded. This may be caused by a race condition if the module is simultaneously dynamically import()-ed via Promise.all(). Try await-ing the import() sequentially in a loop instead. (from D:\\office\\portacourt\\node_modules\\backstopjs\\core\\util\\runPuppet.js)\nThis is caused by either a bug in Node.js or incorrect usage of Node.js internals.\nPlease open an issue with this stack trace at https://github.com/nodejs/node/issues\n",
+        "diff": {
+          "isSameDimensions": true,
+          "dimensionDifference": {
+            "width": 0,
+            "height": 0
+          },
+          "misMatchPercentage": "0.00"
+        }
+      },
+      "status": "pass"
+    }
+  ],
+  "id": "backstop_default"
+}
