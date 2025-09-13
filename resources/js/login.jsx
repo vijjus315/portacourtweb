@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { login as apiLogin } from './api/auth.js';
 import './bootstrap';
 
 function csrfToken() {
@@ -19,22 +20,48 @@ const Login = ({ action, passwordResetUrl }) => {
         setSubmitting(true);
         setErrors({});
         try {
-            const response = await window.axios.post(
-                action,
-                { email, password, remember },
-                { headers: { 'X-CSRF-TOKEN': csrfToken(), Accept: 'application/json' } }
-            );
-            if (response.status === 200 || response.status === 204) {
-                window.location.href = '/';
+            // Use the external API for login
+            const data = await apiLogin({ email, password, remember });
+            
+            if (data.success === true) {
+                // Store token and user data in localStorage
+                if (data.body && data.body.token) {
+                    localStorage.setItem('auth_token', data.body.token);
+                    localStorage.setItem('user_data', JSON.stringify(data.body.user));
+                }
+
+                if (data.body && data.body.user && data.body.user.is_verify === 1) {
+                    // User is verified, redirect to home page
+                    if (window.toastr) window.toastr.success(data.message || 'Logged in successfully');
+                    
+                    // Dispatch custom event for header update
+                    window.dispatchEvent(new CustomEvent('userLoggedIn'));
+                    
+                    window.location.href = '/';
+                } else {
+                    // User needs OTP verification
+                    if (window.toastr && data.message) window.toastr.success(data.message);
+                    
+                    // Dispatch custom event for header update
+                    window.dispatchEvent(new CustomEvent('userLoggedIn'));
+                    
+                    // You can add OTP verification logic here if needed
+                    // For now, we'll redirect to home page
+                    window.location.href = '/';
+                }
             } else {
-                window.location.reload();
+                // Login failed
+                if (data.errors) {
+                    setErrors(data.errors);
+                } else if (data.message) {
+                    if (window.toastr) window.toastr.error(data.message);
+                }
             }
         } catch (err) {
-            if (err.response && err.response.status === 422) {
-                setErrors(err.response.data.errors || {});
+            if (err.status === 422) {
+                setErrors(err.data.errors || {});
             } else {
-                // fallback to server-rendered validation by reloading on unknown errors
-                window.location.reload();
+                if (window.toastr) window.toastr.error('An error occurred. Please try again.');
             }
         } finally {
             setSubmitting(false);

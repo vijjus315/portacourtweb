@@ -191,6 +191,88 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
+        // Session management utilities
+        function isAuthenticated() {
+            return !!localStorage.getItem('auth_token');
+        }
+
+        function getUserData() {
+            const userData = localStorage.getItem('user_data');
+            return userData ? JSON.parse(userData) : null;
+        }
+
+        function clearAuthData() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+        }
+
+        function updateHeaderVisibility() {
+            const isLoggedIn = isAuthenticated();
+            const userData = getUserData();
+            
+            // Hide/show login/signup buttons
+            const loginSignupDiv = document.querySelector('.d-flex.gap-4.align-items-center:has(.btn.green-btn)');
+            const profileDropdown = document.querySelector('.dropdown:has(.profile-main)');
+            
+            if (loginSignupDiv) {
+                loginSignupDiv.style.display = isLoggedIn ? 'none' : 'flex';
+            }
+            
+            if (profileDropdown) {
+                profileDropdown.style.display = isLoggedIn ? 'block' : 'none';
+                
+                if (isLoggedIn && userData) {
+                    // Update user profile data
+                    const profileImg = profileDropdown.querySelector('.user-profile');
+                    const profileName = profileDropdown.querySelector('.profile-name');
+                    const profileInnerImg = profileDropdown.querySelector('.profile-inner');
+                    const profileInnerName = profileDropdown.querySelector('.profile-inner + div h4');
+                    const profileInnerEmail = profileDropdown.querySelector('.profile-inner + div p');
+                    
+                    if (profileImg) {
+                        profileImg.src = userData.profile || '{{ url("/") }}/dummy.png';
+                    }
+                    if (profileName) {
+                        profileName.textContent = userData.name || 'User';
+                    }
+                    if (profileInnerImg) {
+                        profileInnerImg.src = userData.profile || '{{ url("/") }}/dummy.png';
+                    }
+                    if (profileInnerName) {
+                        profileInnerName.textContent = userData.name || 'User';
+                    }
+                    if (profileInnerEmail) {
+                        profileInnerEmail.textContent = userData.email || '';
+                    }
+                }
+            }
+        }
+
+        function handleLogout() {
+            clearAuthData();
+            updateHeaderVisibility();
+            window.dispatchEvent(new CustomEvent('userLoggedOut'));
+            window.location.href = '{{ route("home") }}';
+        }
+
+        // Initialize header visibility on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateHeaderVisibility();
+            
+            // Listen for login events
+            window.addEventListener('userLoggedIn', updateHeaderVisibility);
+            window.addEventListener('userLoggedOut', updateHeaderVisibility);
+            
+            // Add logout functionality to existing logout button
+            const logoutBtn = document.querySelector('a[href="{{route("userLogout")}}"]');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
+        });
+
         $(document).ready(function() {
             // Handle login form submission
             $('#loginForm').on('submit', function(e) {
@@ -198,19 +280,40 @@
                 clearErrors('login');
 
                 $.ajax({
-                    url: '{{ route("userLogin") }}', // Replace with your login route
+                    url: 'https://www.portacourts.com:4235/api/v1/auth/login',
                     method: 'POST',
                     data: $(this).serialize(),
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
                     success: function(response) {
                         if (response.success === true) {
-                            if (response.is_verified) {
+                            // Store token and user data in localStorage
+                            if (response.body && response.body.token) {
+                                localStorage.setItem('auth_token', response.body.token);
+                                localStorage.setItem('user_data', JSON.stringify(response.body.user));
+                            }
+
+                            if (response.body && response.body.user && response.body.user.is_verify === 1) {
+                                // User is verified, redirect to home page
+                                $('#loginmodal').modal('hide');
+                                toastr.success(response.message || 'Logged in successfully');
+                                
+                                // Dispatch custom event for header update
+                                window.dispatchEvent(new CustomEvent('userLoggedIn'));
+                                
                                 window.location.href = '{{ route("home") }}'; // Redirect to dashboard
                             } else {
+                                // User needs OTP verification
                                 $('#loginmodal').modal('hide');
-                                $('#emailDisplay').text(response.email);
-                                $('#verifyOtpEmail').val(response.email);
+                                $('#emailDisplay').text(response.body?.user?.email || response.email);
+                                $('#verifyOtpEmail').val(response.body?.user?.email || response.email);
                                 $('#verifyemail').modal('show');
                                 toastr.success(response.message)
+                                
+                                // Dispatch custom event for header update
+                                window.dispatchEvent(new CustomEvent('userLoggedIn'));
                             }
                         } else {
                             if (response.message) {
@@ -220,8 +323,12 @@
                             }
                         }
                     },
-                    error: function() {
-                        toastr.error('An error occurred. Please try again.');
+                    error: function(xhr) {
+                        if (xhr.status === 422) {
+                            displayErrors(xhr.responseJSON.errors, 'login');
+                        } else {
+                            toastr.error('An error occurred. Please try again.');
+                        }
                     }
                 });
             });

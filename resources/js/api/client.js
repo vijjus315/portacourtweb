@@ -52,6 +52,20 @@ export const apiClient = axios.create({
     },
 });
 
+// Add a request interceptor to include auth token
+apiClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
 // Add a response interceptor to handle errors in a consistent way
 apiClient.interceptors.response.use(
     // On successful response, just return the response
@@ -61,6 +75,14 @@ apiClient.interceptors.response.use(
     (error) => {
         // If the server responded with a status code
         if (error.response) {
+            // Handle 401 unauthorized - clear auth data and redirect to login
+            if (error.response.status === 401) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                // Optionally redirect to login page
+                // window.location.href = '/login';
+            }
+            
             // Reject with a simplified error object containing status and data
             return Promise.reject({
                 status: error.response.status, // e.g., 400, 401, 500

@@ -31,12 +31,27 @@ const LoginModal = () => {
 
         if (data.success === true) { 
             // If login was successful (API returned success flag)
+            
+            // Store token and user data in localStorage
+            if (data.body && data.body.token) {
+                localStorage.setItem('auth_token', data.body.token);
+                localStorage.setItem('user_data', JSON.stringify(data.body.user));
+            }
 
-            if (data.is_verified) { 
-                // If the user’s email/account is already verified
+            if (data.body && data.body.user && data.body.user.is_verify === 1) { 
+                // If the user's email/account is already verified
 
-                if (window.toastr) window.toastr.success('Logged in successfully'); 
+                if (window.toastr) window.toastr.success(data.message || 'Logged in successfully'); 
                 // Show success toast message if toastr library is available
+
+                // Hide login modal
+                const loginEl = document.getElementById('loginmodal');
+                try { 
+                    window.bootstrap.Modal.getInstance(loginEl)?.hide(); 
+                } catch (_) {} 
+
+                // Dispatch custom event for header update
+                window.dispatchEvent(new CustomEvent('userLoggedIn'));
 
                 window.location.href = '/'; 
                 // Redirect user to homepage
@@ -47,19 +62,19 @@ const LoginModal = () => {
                 const loginEl = document.getElementById('loginmodal');
 
                 try { 
-                    // Try hiding the login modal (in case it’s open)
+                    // Try hiding the login modal (in case it's open)
                     window.bootstrap.Modal.getInstance(loginEl)?.hide(); 
                 } catch (_) {} 
                 // If Bootstrap modal instance not found, safely ignore the error
 
                 // Find the span/element where email is displayed in OTP modal
                 const emailDisplay = document.getElementById('emailDisplay');
-                if (emailDisplay) emailDisplay.innerText = data.email || email; 
-                // Update it with the user’s email (from API response or input)
+                if (emailDisplay) emailDisplay.innerText = data.body?.user?.email || email; 
+                // Update it with the user's email (from API response or input)
 
                 // Hidden input for OTP form to pass email
                 const ve = document.getElementById('verifyOtpEmail');
-                if (ve) ve.value = data.email || email; 
+                if (ve) ve.value = data.body?.user?.email || email; 
                 // Store email value in hidden field for OTP verification
 
                 // Initialize the verify-email modal
