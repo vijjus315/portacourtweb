@@ -1,31 +1,4 @@
-// import axios from 'axios';
 
-// const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://www.portacourts.com:4235/api/v1';
-
-// export const apiClient = axios.create({
-//     baseURL,
-//     withCredentials: false,
-//     headers: {
-//         'Accept': 'application/json',
-//         'Content-Type': 'application/json'
-//     }
-// });
-
-// apiClient.interceptors.response.use(
-//     (response) => response,
-//     (error) => {
-//         // Normalize error shape
-//         if (error.response) {
-//             return Promise.reject({
-//                 status: error.response.status,
-//                 data: error.response.data
-//             });
-//         }
-//         return Promise.reject({ status: 0, data: { message: 'Network error' } });
-//     }
-// );
-
-// export default apiClient;
 
 // Import the axios HTTP client library
 import axios from "axios";
