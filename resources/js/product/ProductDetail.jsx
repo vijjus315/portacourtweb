@@ -5,6 +5,8 @@ import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import Reviews from '../components/Reviews.jsx';
 import CustomCourtModal from '../components/CustomCourtModal.jsx';
+import { getProductBySlug, getProductById } from '../api/product.js';
+import { getImageUrl, getVideoUrl } from '../utils/imageUtils.js';
 
 function getSlugFromLocation() {
     try {
@@ -16,6 +18,49 @@ function getSlugFromLocation() {
         if (el && el.dataset && el.dataset.slug) return el.dataset.slug;
     } catch (_) {}
     return '';
+}
+
+function getProductIdFromLocation() {
+    try {
+        // Try to get product ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id') || urlParams.get('product_id');
+        if (productId) return productId;
+
+        // Try to get from pathname if it's in the format /product-detail/4 or similar
+        const parts = (window.location.pathname || '').split('/').filter(Boolean);
+        const idx = parts.findIndex(p => p === 'product-detail');
+        if (idx !== -1 && parts[idx + 1]) {
+            // Check if the next part is a number (product ID)
+            const potentialId = parts[idx + 1];
+            if (!isNaN(potentialId)) return potentialId;
+        }
+
+        // Try to get from dataset
+        const el = document.getElementById('react-product-detail-root');
+        if (el && el.dataset && el.dataset.productId) return el.dataset.productId;
+    } catch (_) {}
+    return null;
+}
+
+function getUserId() {
+    try {
+        // Try to get user ID from localStorage
+        const userData = localStorage.getItem('user_data');
+        if (userData) {
+            const parsed = JSON.parse(userData);
+            return parsed.id || parsed.user_id || 34; // fallback to default
+        }
+        
+        // Try to get from auth token or other sources
+        const authToken = localStorage.getItem('auth_token');
+        if (authToken) {
+            // You might need to decode the token to get user ID
+            // For now, return default
+            return 34;
+        }
+    } catch (_) {}
+    return 34; // Default user ID
 }
 
 // Dummy product list
@@ -61,89 +106,6 @@ const DUMMY_PRODUCTS = [
   },
 ];
 
-const reviews = [
-  {
-    id: 1,
-    name: "dan",
-    date: "Sep, 09 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/oj9fKCumwc4RGvo.png",
-    rating: 5,
-    comment: "Test rating",
-  },
-  {
-    id: 2,
-    name: "Test1245",
-    date: "Sep, 09 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/j8sn2Kst6aq6rci.png",
-    rating: 2,
-    comment: "Nyc",
-  },
-  {
-    id: 3,
-    name: "Test1245",
-    date: "Sep, 09 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/j8sn2Kst6aq6rci.png",
-    rating: 2,
-    comment: "tesing",
-  },
-  {
-    id: 4,
-    name: "Test1245",
-    date: "Sep, 09 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/j8sn2Kst6aq6rci.png",
-    rating: 5,
-    comment: "Good court",
-  },
-  {
-    id: 5,
-    name: "Tushar",
-    date: "Jul, 01 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/bLYYkkfq8o2VXXw.png",
-    rating: 5,
-    comment: "Tui",
-  },
-  {
-    id: 6,
-    name: "Tushar",
-    date: "Jul, 01 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/bLYYkkfq8o2VXXw.png",
-    rating: 5,
-    comment: "Yujjjhjjhhbhjj",
-  },
-  {
-    id: 7,
-    name: "dan",
-    date: "Jun, 26 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/oj9fKCumwc4RGvo.png",
-    rating: 3,
-    comment: "Ff",
-  },
-  {
-    id: 8,
-    name: "dan",
-    date: "Jun, 26 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/oj9fKCumwc4RGvo.png",
-    rating: 3,
-    comment: "Ssd",
-  },
-  {
-    id: 9,
-    name: "dan",
-    date: "Jun, 26 2025",
-    profile:
-      "https://www.portacourts.com/storage/https://portacourts.s3.us-east-2.amazonaws.com/uploads/oj9fKCumwc4RGvo.png",
-    rating: 2,
-    comment: "Nice product",
-  },
-];
 
 
 const ProductDetail = () => {
@@ -160,19 +122,77 @@ const ProductDetail = () => {
     }
 
     useEffect(() => {
-        // Load dummy data instead of API
-        const list = DUMMY_PRODUCTS;
-        setAllProducts(list);
+        async function loadProduct() {
+            const slug = getSlugFromLocation();
+            const productId = getProductIdFromLocation();
+            const userId = getUserId();
+            
+            if (!slug && !productId) {
+                // Fallback to dummy data if no slug or product ID
+                const list = DUMMY_PRODUCTS;
+                setAllProducts(list);
+                setProduct(list[0] || null);
+                return;
+            }
 
-        const slug = getSlugFromLocation();
-        const found = list.find(p => p.slug === slug) || list[0] || null;
-        setProduct(found);
+            try {
+                let productData = null;
+
+                // Priority 1: If we have product ID, use getProductById (most reliable)
+                if (productId) {
+                    productData = await getProductById(productId, userId);
+                }
+                
+                // Priority 2: If no product ID or failed, try by slug
+                if (!productData && slug) {
+                    productData = await getProductBySlug(slug, userId);
+                }
+
+                if (productData) {
+                    // Transform API data to match expected format
+                    const transformedProduct = {
+                        id: productData.id,
+                        title: productData.title,
+                        slug: productData.slug,
+                        average_rating: productData.average_rating || 0,
+                        rating_count: productData.rating_count || 0,
+                        category_id: productData.cat_id,
+                        product_images: productData.product_images || [],
+                        variants: productData.product_variants || [],
+                        description: productData.description,
+                        video: productData.video,
+                        is_featured: productData.is_featured,
+                        is_fav: productData.is_fav,
+                        ratings: productData.ratings || [],
+                        status: productData.status,
+                        created_at: productData.created_at,
+                        updated_at: productData.updated_at
+                    };
+                    setProduct(transformedProduct);
+                    setAllProducts([transformedProduct]);
+                } else {
+                    // Fallback to dummy data if product not found
+                    const list = DUMMY_PRODUCTS;
+                    setAllProducts(list);
+                    const found = list.find(p => p.slug === slug) || list[0] || null;
+                    setProduct(found);
+                }
+            } catch (error) {
+                console.error('Failed to load product data', error);
+                // Fallback to dummy data on error
+                const list = DUMMY_PRODUCTS;
+                setAllProducts(list);
+                const found = list.find(p => p.slug === slug) || list[0] || null;
+                setProduct(found);
+            }
+        }
+        loadProduct();
     }, []);
 
     const images = useMemo(() => {
         if (!product) return [];
         const imgs = product.product_images || [];
-        return imgs.map(i => (i.image_url.startsWith('http') ? i.image_url : `/storage/${i.image_url}`));
+        return imgs.map(i => getImageUrl(i.image_url));
     }, [product]);
 
     const variant = useMemo(() => {
@@ -361,14 +381,14 @@ const ProductDetail = () => {
                                         {product.video && (
                                         <div className="col-lg-5 mt-3 mt-lg-0">
                                             <video height="365" controls style={{ width: '100%' }}>
-                                                <source src={`/storage/${product.video}`} type="video/mp4" />
+                                                <source src={getVideoUrl(product.video)} type="video/mp4" />
                                             </video>
                                         </div>
                                         )}
                                     </div>
                                 </div>
                                 {/* Reviews Tab */}
-                                <Reviews />
+                                <Reviews productRatings={product.ratings || []} />
                                 
                             </div>
                         </div>
@@ -392,134 +412,3 @@ if (typeof window !== 'undefined') {
         root.render(<ProductDetail />);
     }
 }
-
-
-
-
-
-// {/* <div className="tab-pane fade" 
-//                                     id="review" role="tabpanel" 
-//                                     aria-labelledby="review-tab"
-//                                 >
-//                                     <div className="row mt-4 mb-5">
-//                                       <div className="col-12 col-lg-6 p-3">
-//                                         {/* Header + Sort */}
-//                                         <div className="row pb-3 pb-md-4 pt-md-0 align-items-center comment-text">
-//                                           <div className="col-md-6">
-//                                             <h5 className="mb-0 fw-500 f18">All Reviews ({reviews.length})</h5>
-//                                           </div>
-                                          
-//                                           <div className="col-md-6 pt-3 pt-md-0">
-//                                             <div className="sort-drop text-end gap-2">
-//                                                 <p className="sort-text mb-0">Sort by :</p>
-//                                               <div className="dropdown">
-//                                                 <button className="btn dropdown-toggle drop-btn-sort fw-500 border-0"
-//                                                 type="button" id="newest-dropdown"
-//                                                 data-bs-toggle="dropdown"
-//                                                 aria-expanded="false"
-//                                                 >
-//                                                     Newest
-//                                                 </button>
-//                                                 <ul className="dropdown-menu" aria-labelledby="newest-dropdown">
-//                                                     <li>
-//                                                         <a className="dropdown-item" 
-//                                                         href="https://www.portacourts.com/product-detail/premium-spike-ball-court?filter=newest"
-//                                                         >
-//                                                             Newest
-//                                                         </a>
-//                                                     </li>
-//                                                     <li>
-//                                                         <a className="dropdown-item" 
-//                                                         href="https://www.portacourts.com/product-detail/premium-spike-ball-court?filter=oldest"
-//                                                         >
-//                                                             Oldest
-//                                                         </a>
-//                                                     </li>
-//                                                 </ul>
-//                                               </div>
-//                                             </div>
-//                                           </div>
-//                                         </div>
-//                                         {/* Reviews List */}
-//                                         {reviews.map((review) => (
-//                                           <div className="comment-section" key={review.id}>
-//                                             <div className="comment-inner-box">
-//                                               <div>
-//                                                 <img src={review.profile}
-//                                                    alt="User Profile"
-//                                                    className="profile-comment"
-//                                                 />
-//                                               </div>
-//                                               <div className="d-flex justify-content-between w-100">
-//                                                 <div className="profile-name-comment">
-//                                                   <p className="f16 fw-500 text-black mb-0 lh-0">{review.name}</p>
-//                                                   <p className="mb-0 fw-400 lh-0 mt-4">{review.date}</p>
-//                                                   <div className="star-comment mt-2">
-//                                                     {[...Array(5)].map((_, i) => (
-//                                                       <img key={i} src={i < review.rating 
-//                                                         ? "https://www.portacourts.com/webassets/img/yellow-star.svg" 
-//                                                         : "https://www.portacourts.com/webassets/img/grey-star.svg"}
-//                                                         alt=""
-//                                                       />
-//                                                     ))}
-//                                                   </div>
-//                                                 </div>
-//                                                 <div className="edit-drop-review">
-//                                                   <div className="dropdown">
-//                                                     <button className="btn" 
-//                                                     type="button" id={`dropdownMenuButton-${review.id}`} 
-//                                                     data-bs-toggle="dropdown" 
-//                                                     aria-expanded="false"
-//                                                     >
-//                                                         <img 
-//                                                         src="https://www.portacourts.com/webassets/img/hori-dots.svg" 
-//                                                         alt=""
-//                                                         />
-//                                                     </button>
-//                                                   </div>
-//                                                 </div>
-//                                               </div>
-//                                             </div>
-//                                             <p className="mb-0 fw-400 text-black pt-2 pt-sm-3 line-24 f16 description-div3">
-//                                                 {review.comment}
-//                                             </p>
-//                                           <hr />
-//                                         </div>
-//                                        ))}
-//                                     </div>
-                                    
-//                                     {/* Right Side: Review Form */}
-//                                     <div className="col-12 col-lg-6 p-3">
-//                                       <div className="review-user">
-//                                         <div className="mt-2">
-//                                           <div className="px-4">
-//                                             <div className="mb-3 position-relative">
-//                                                 <label className="fw-500 mb-2">Ratings</label>
-//                                                 <div className="d-flex justify-content-start gap-3 align-items-center">
-//                                                     <i className="cus-star-icon unfillstar fa fa-star" data-value="1" aria-hidden="true"></i>
-//                                                     <i className="cus-star-icon unfillstar fa fa-star" data-value="2" aria-hidden="true"></i>
-//                                                     <i className="cus-star-icon unfillstar fa fa-star" data-value="3" aria-hidden="true"></i>
-//                                                     <i className="cus-star-icon unfillstar fa fa-star" data-value="4" aria-hidden="true"></i>
-//                                                     <i className="cus-star-icon unfillstar fa fa-star" data-value="5" aria-hidden="true"></i>
-//                                                 </div>
-//                                                 <input type="hidden" id="rating" name="rating" value="0" />
-//                                                 <input type="hidden" id="product_id" name="product_id" value="4" />
-//                                             </div>
-//                                             <div className="mb-4 position-relative">
-//                                               <label className="fw-500 mb-2" htmlFor="comment">Your review</label>
-//                                               <textarea id="comment"
-//                                               className="form-control delivary-input pwd-field pe-5 bg-white border-0 resize-none"
-//                                               placeholder="Write your review" 
-//                                               rows="8"
-//                                               >
-//                                               </textarea>
-//                                             </div>
-//                                             <button type="button" id="submitReview" className="btn green-btn w-100 mt-2">
-//                                                 Submit Review
-//                                             </button>
-//                                             </div>
-//                                         </div>
-//                                       </div>
-//                                     </div>
-//                                 </div>
-//                               </div> */}

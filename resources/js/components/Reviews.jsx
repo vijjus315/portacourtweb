@@ -1,11 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReviewSubmit from "./ReviewSubmit";
 
-const Reviews = () => {
+const Reviews = ({ productRatings = [] }) => {
   const [reviews, setReviews] = useState([]);
   const [reviewText, setReviewText] = useState("");
   const [rating, setRating] = useState(0);
   const [showReviewSubmit, setShowReviewSubmit] = useState(false);
+
+  // Transform API ratings to match component format
+  useEffect(() => {
+    if (productRatings && productRatings.length > 0) {
+      const transformedReviews = productRatings.map(apiReview => ({
+        id: apiReview.id,
+        name: apiReview.user?.name || "Anonymous User",
+        profile: apiReview.user?.profile || "https://www.portacourts.com/webassets/img/profile.png",
+        date: new Date(apiReview.created_at).toLocaleDateString(),
+        rating: parseInt(apiReview.rating),
+        comment: apiReview.comment || "",
+        user_id: apiReview.user_id
+      }));
+      setReviews(transformedReviews);
+    }
+  }, [productRatings]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

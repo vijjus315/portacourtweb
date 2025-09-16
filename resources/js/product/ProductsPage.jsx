@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
+import { getProducts } from '../api/product.js';
+import { getImageUrl } from '../utils/imageUtils.js';
 import '../bootstrap';
 
 const ProductsPage = () => {
@@ -9,14 +11,50 @@ const ProductsPage = () => {
     const [categories, setCategories] = useState([]);
     const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
     const [sortBy, setSortBy] = useState(''); // remove 'desc' which responsible for showing filter by default.
-    const [priceRange, setPriceRange] = useState([0, 1000]);
+    const [priceRange, setPriceRange] = useState([0, 15000]);
 
     useEffect(() => {
         async function load() {
             try {
-                const res = await window.axios.get('/home-data');
-                const apiProducts = res.data.product || [];
-                //! Fallback showcase products if API is empty to match original design
+                const res = await getProducts(34);
+                const apiProducts = res.body || [];
+
+
+                
+                // Transform API data to match expected format
+                const transformedProducts = apiProducts.map(product => ({
+                    id: product.id,
+                    title: product.title,
+                    slug: product.slug,
+                    average_rating: product.average_rating || 0,
+                    category_id: product.cat_id,
+                    product_images: product.product_images || [],
+                    variants: product.product_variants || [],
+                    description: product.description,
+                    video: product.video,
+                    is_featured: product.is_featured,
+                    is_fav: product.is_fav
+                }));
+                
+                setAllProducts(transformedProducts);
+                
+                // Set categories based on the products
+                const uniqueCategories = [...new Set(transformedProducts.map(p => p.category_id))];
+                const categoryMap = {
+                    1: 'TENNIS BALL COURTS',
+                    2: 'PICKLEBALL COURTS', 
+                    3: 'SPIKE BALL COURTS'
+                };
+                
+                const categories = uniqueCategories.map(id => ({
+                    id: id,
+                    title: categoryMap[id] || `Category ${id}`
+                }));
+                
+                setCategories(categories);
+            } catch (error) {
+                console.error('Failed to load products data', error);
+                // Fallback to original dummy data if API fails
                 const fallbackProducts = [
                     {
                         id: 'fb-1',
@@ -46,16 +84,12 @@ const ProductsPage = () => {
                         variants: [{ price: 9800, discounted_price: 8820 }],
                     },
                 ];
-                
-                setAllProducts(apiProducts.length ? apiProducts : fallbackProducts);
-                const cats = res.data.category || [];
-                setCategories(cats.length ? cats : [
+                setAllProducts(fallbackProducts);
+                setCategories([
                     { id: 1, title: 'TENNIS BALL COURTS' },
                     { id: 2, title: 'PICKLEBALL COURTS' },
                     { id: 3, title: 'SPIKE BALL COURTS' },
                 ]);
-            } catch (error) {
-                console.error('Failed to load products data', error);
             }
         }
         load();
@@ -67,9 +101,11 @@ const ProductsPage = () => {
         );
     };
 
-    //! filteredProducts is empty
+    // Filter and sort products
     const filteredProducts = useMemo(() => {
         let list = [...allProducts];
+
+
         if (selectedCategoryIds.length) {
             list = list.filter((p) => selectedCategoryIds.includes(String(p.category_id)));
         }
@@ -98,7 +134,7 @@ const ProductsPage = () => {
                     $slider.slider({
                         range: true,
                         min: 0,
-                        max: 10000,
+                        max: 15000,
                         values: [$min, $max],
                         slide: function (_e, ui) {
                             const [v1, v2] = ui.values;
@@ -207,7 +243,7 @@ const ProductsPage = () => {
                                     <a
                                         className="border-0 clear-filter fw-400 font-Yantramanav d-flex align-items-center gap-2"
                                         href="/products"
-                                        onClick={(e) => { e.preventDefault(); setSelectedCategoryIds([]); setSortBy(''); setPriceRange([0, 1000]); }}
+                                        onClick={(e) => { e.preventDefault(); setSelectedCategoryIds([]); setSortBy(''); setPriceRange([0, 15000]); }}
                                     >
                                         Clear All Filter
                                     </a>
@@ -215,20 +251,19 @@ const ProductsPage = () => {
                             </div>
                         )}
                         <div className="row pt-4">
-                            {allProducts.length === 0 && (
+                            {filteredProducts.length === 0 && (
                                 <div className="d-flex mx-auto justify-content-center align-items-center my-5 h-100">
                                     <img src={`${window.location.origin}/webassets/img/wishlist-empty.png`} className=" no-data-found" />
                                 </div>
                             )}
-                            {allProducts.map((p) => {
+                            {filteredProducts.map((p) => {
                                 const image = (p.product_images && p.product_images[0]) || {};
                                 const item = (p.variants && p.variants[0]) || {};
-                                const imgSrc = (image.image_url || '').startsWith('http') ? image.image_url : `/storage/${image.image_url}`;
-                                console.log('Final imgSrc:', imgSrc);
+                                const imgSrc = getImageUrl(image.image_url);
                                 return (
                                     <div className="col-md-6 col-xl-4 mb-3" key={p.id}>
                                         {/* /product-detail */}
-                                        <a href={`/product-detail/${p.slug}`} className="text-decoration-none">
+                                        <a href={`/product-detail/${p.slug}?id=${p.id}`} className="text-decoration-none">
                                             <div className="feature-pro">
                                                 <div className="product-feature-img product-bg position-relative">
                                                     <img alt="product_images" src={imgSrc} className="img-fluid product-pic" />
