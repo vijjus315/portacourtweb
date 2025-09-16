@@ -5,6 +5,8 @@ import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import Reviews from '../components/Reviews.jsx';
 import CustomCourtModal from '../components/CustomCourtModal.jsx';
+import LoginModal from '../components/LoginModal.jsx';
+import SignupModal from '../components/SignupModal.jsx';
 import { getProductBySlug, getProductById } from '../api/product.js';
 import { getImageUrl, getVideoUrl } from '../utils/imageUtils.js';
 
@@ -203,9 +205,22 @@ const ProductDetail = () => {
 
     if (!product) {
         return (
-            <section className="py-5">
-                <div className="container"><p>Loading product...</p></div>
-            </section>
+            <>
+                <Header />
+                <section className="py-5">
+                    <div className="container">
+                        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+                            <div className="text-center">
+                                <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+                                    <span className="visually-hidden">Loading...</span>
+                                </div>
+                                <p className="mt-3 text-muted">Loading product details...</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <Footer />
+            </>
         );
     }
 
@@ -398,6 +413,11 @@ const ProductDetail = () => {
             </section>
             {/* court modal */}
             {showCourtModal && <CustomCourtModal onClose={() => setShowCourtModal(false)} />}
+            
+            {/* Login and Signup Modals */}
+            <LoginModal />
+            <SignupModal />
+            
             <Footer />
         </>
     );

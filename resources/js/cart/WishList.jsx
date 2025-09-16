@@ -2,6 +2,8 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import LoginModal from '../components/LoginModal';
+import SignupModal from '../components/SignupModal';
 
 const Wishlist = () => {
   return (
@@ -35,6 +37,11 @@ const Wishlist = () => {
         </div>
       </div>
     </div>
+    
+    {/* Login and Signup Modals */}
+    <LoginModal />
+    <SignupModal />
+    
     <Footer />
     </>
   );

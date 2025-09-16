@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import LoginModal from '../components/LoginModal';
+import SignupModal from '../components/SignupModal';
 import "../bootstrap";
 import BlogDetail from "./BlogDetail";
 
@@ -357,6 +359,11 @@ const Blog = () => {
           )}
         </div>
       </section>
+      
+      {/* Login and Signup Modals */}
+      <LoginModal />
+      <SignupModal />
+      
       <Footer />
     </>
   );

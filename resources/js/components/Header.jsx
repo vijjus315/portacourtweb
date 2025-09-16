@@ -6,6 +6,7 @@ const Header = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [currentPath, setCurrentPath] = useState('');
 
     useEffect(() => {
         // Check authentication status on component mount
@@ -35,6 +36,23 @@ const Header = () => {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('userLoggedIn', checkAuthStatus);
             window.removeEventListener('userLoggedOut', checkAuthStatus);
+        };
+    }, []);
+
+    // Track current path for active navigation state
+    useEffect(() => {
+        const updateCurrentPath = () => {
+            setCurrentPath(window.location.pathname);
+        };
+
+        // Set initial path
+        updateCurrentPath();
+
+        // Listen for navigation changes (popstate event for back/forward buttons)
+        window.addEventListener('popstate', updateCurrentPath);
+
+        return () => {
+            window.removeEventListener('popstate', updateCurrentPath);
         };
     }, []);
 
@@ -95,6 +113,24 @@ const Header = () => {
     const closeDropdown = () => {
         setIsDropdownOpen(false);
     };
+
+    // Helper function to determine if a nav item should be active
+    const isNavActive = (path) => {
+        if (!currentPath) return false;
+        
+        // Handle home page (root path)
+        if (path === '/' && currentPath === '/') return true;
+        
+        // Handle products - should be active for both /products and /product-detail pages
+        if (path === '/products') {
+            return currentPath.startsWith('/products') || currentPath.startsWith('/product-detail');
+        }
+        
+        // Handle other pages - check if current path starts with the nav path
+        if (path !== '/' && currentPath.startsWith(path)) return true;
+        
+        return false;
+    };
     return (
         <header className="font-Yantramanav header-wrapper ">
             <nav className="navbar navbar-expand-lg pt-0  pb-0">
@@ -117,13 +153,23 @@ const Header = () => {
                     <div className="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
                             <li className="nav-item px-2">
-                                <a className="nav-link active" aria-current="page" href="/">Home</a>
+                                <a className={`nav-link ${isNavActive('/') ? 'active' : ''}`} aria-current="page" href="/">Home</a>
                             </li>
-                            <li className="nav-item px-2"><a className="nav-link " href="/products">Products</a></li>
-                            <li className="nav-item px-2"><a className="nav-link" href="/blog">Blog</a></li>
-                            <li className="nav-item px-2"><a className="nav-link" href="/about-us">About Us</a></li>
-                            <li className="nav-item px-2"><a className="nav-link" href="/contact-us">Contact Us</a></li>
-                            <li className="nav-item px-2"><a className="nav-link" href="/track-orders">Track Order</a></li>
+                            <li className="nav-item px-2">
+                                <a className={`nav-link ${isNavActive('/products') ? 'active' : ''}`} href="/products">Products</a>
+                            </li>
+                            <li className="nav-item px-2">
+                                <a className={`nav-link ${isNavActive('/blog') ? 'active' : ''}`} href="/blog">Blog</a>
+                            </li>
+                            <li className="nav-item px-2">
+                                <a className={`nav-link ${isNavActive('/about-us') ? 'active' : ''}`} href="/about-us">About Us</a>
+                            </li>
+                            <li className="nav-item px-2">
+                                <a className={`nav-link ${isNavActive('/contact-us') ? 'active' : ''}`} href="/contact-us">Contact Us</a>
+                            </li>
+                            <li className="nav-item px-2">
+                                <a className={`nav-link ${isNavActive('/track-orders') ? 'active' : ''}`} href="/track-orders">Track Order</a>
+                            </li>
                         </ul>
                         <div className="d-flex gap-4 align-items-center flex-wrap">
                             <div className="d-flex gap-4 align-items-center ">

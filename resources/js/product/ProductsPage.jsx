@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
+import LoginModal from '../components/LoginModal.jsx';
+import SignupModal from '../components/SignupModal.jsx';
 import { getProducts } from '../api/product.js';
 import { getImageUrl } from '../utils/imageUtils.js';
 import '../bootstrap';
@@ -12,6 +14,7 @@ const ProductsPage = () => {
     const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
     const [sortBy, setSortBy] = useState(''); // remove 'desc' which responsible for showing filter by default.
     const [priceRange, setPriceRange] = useState([0, 15000]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         async function load() {
@@ -90,6 +93,8 @@ const ProductsPage = () => {
                     { id: 2, title: 'PICKLEBALL COURTS' },
                     { id: 3, title: 'SPIKE BALL COURTS' },
                 ]);
+            } finally {
+                setIsLoading(false);
             }
         }
         load();
@@ -251,12 +256,21 @@ const ProductsPage = () => {
                             </div>
                         )}
                         <div className="row pt-4">
-                            {filteredProducts.length === 0 && (
+                            {isLoading ? (
+                                <div className="d-flex mx-auto justify-content-center align-items-center my-5 h-100">
+                                    <div className="text-center">
+                                        <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p className="mt-3 text-muted">Loading products...</p>
+                                    </div>
+                                </div>
+                            ) : filteredProducts.length === 0 ? (
                                 <div className="d-flex mx-auto justify-content-center align-items-center my-5 h-100">
                                     <img src={`${window.location.origin}/webassets/img/wishlist-empty.png`} className=" no-data-found" />
                                 </div>
-                            )}
-                            {filteredProducts.map((p) => {
+                            ) : (
+                                filteredProducts.map((p) => {
                                 const image = (p.product_images && p.product_images[0]) || {};
                                 const item = (p.variants && p.variants[0]) || {};
                                 const imgSrc = getImageUrl(image.image_url);
@@ -298,12 +312,18 @@ const ProductsPage = () => {
                                         </a>
                                     </div>
                                 );
-                            })}
+                                })
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
         </section>
+        
+        {/* Login and Signup Modals */}
+        <LoginModal />
+        <SignupModal />
+        
         <Footer />
         </>
     );

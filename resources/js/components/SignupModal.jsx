@@ -1,5 +1,14 @@
 import React, { useState } from "react";
 
+function getCsrf() {
+    // Look for a <meta> tag in the HTML with name="csrf-token"
+    const el = document.querySelector('meta[name="csrf-token"]');
+    
+    // If the element exists, return the value of its "content" attribute
+    // Otherwise, return an empty string
+    return el ? el.getAttribute('content') : '';
+}
+
 const SignupModal = () => {
   const [inputName, setInputName] = useState("");
   const [email, setEmail] = useState("");
@@ -48,7 +57,7 @@ const SignupModal = () => {
           <div className="modal-body pt-0">
             <h1 className="font-oswald pb-4">Sign Up</h1>
             <form id="signupForm" onSubmit={handleSubmit}>
-              <input type="hidden" name="_token" value="dummyCsrfToken" />
+              <input type="hidden" name="_token" value={getCsrf()} />
 
               <div className="row">
                 <div className="col-lg-6">
