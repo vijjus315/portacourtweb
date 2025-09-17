@@ -33,6 +33,16 @@ const Header = () => {
             return 0;
         }
     });
+    const [wishlistCount, setWishlistCount] = useState(() => {
+        // Try to get wishlist count from localStorage to prevent flash of 0
+        try {
+            const savedCount = localStorage.getItem('wishlist_count');
+            return savedCount ? parseInt(savedCount, 10) : 0;
+        } catch (error) {
+            console.error('Error getting initial wishlist count:', error);
+            return 0;
+        }
+    });
     const [isAuthLoading, setIsAuthLoading] = useState(false);
 
     // Function to fetch and update cart count
@@ -53,6 +63,15 @@ const Header = () => {
             setCartItemCount(0);
             localStorage.setItem('cart_count', '0');
         }
+    };
+
+    // Function to update wishlist count
+    const updateWishlistCount = (isAdded) => {
+        setWishlistCount(prev => {
+            const newCount = isAdded ? prev + 1 : Math.max(0, prev - 1);
+            localStorage.setItem('wishlist_count', newCount.toString());
+            return newCount;
+        });
     };
 
     useEffect(() => {
@@ -95,12 +114,19 @@ const Header = () => {
         
         // Listen for cart update events
         window.addEventListener('cartUpdated', updateCartCount);
+        
+        // Listen for wishlist update events
+        const handleWishlistUpdate = (event) => {
+            updateWishlistCount(event.detail.isAdded);
+        };
+        window.addEventListener('wishlistUpdated', handleWishlistUpdate);
 
         return () => {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('userLoggedIn', checkAuthStatus);
             window.removeEventListener('userLoggedOut', checkAuthStatus);
             window.removeEventListener('cartUpdated', updateCartCount);
+            window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
         };
     }, []);
 
@@ -239,7 +265,7 @@ const Header = () => {
                         <div className="d-flex gap-4 align-items-center flex-wrap">
                             <div className="d-flex gap-4 align-items-center ">
                                 <a className="wishlist-icon text-decoration-none position-relative me-2" href="/wishlist"><img src={`${window.location.origin}/webassets/img/wishlist.svg`} />
-                                    <span className="number-count wishlistcount">0</span>
+                                    <span className="number-count wishlistcount">{wishlistCount}</span>
                                 </a>
                                 <a className="wishlist-icon text-decoration-none position-relative me-2" href="/cart"><img src={`${window.location.origin}/webassets/img/addtocart.svg`} />
                                     <span className="number-count cartcount">{cartItemCount}</span>

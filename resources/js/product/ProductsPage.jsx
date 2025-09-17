@@ -6,6 +6,7 @@ import LoginModal from '../components/LoginModal.jsx';
 import SignupModal from '../components/SignupModal.jsx';
 import VerifyEmailModal from '../components/VerifyEmailModal.jsx';
 import { getProducts } from '../api/product.js';
+import { addToWishlist, removeFromWishlist } from '../api/wishlist.js';
 import { getImageUrl } from '../utils/imageUtils.js';
 import '../bootstrap';
 
@@ -16,6 +17,8 @@ const ProductsPage = () => {
     const [sortBy, setSortBy] = useState(''); // remove 'desc' which responsible for showing filter by default.
     const [priceRange, setPriceRange] = useState([0, 15000]);
     const [isLoading, setIsLoading] = useState(true);
+    const [wishlistItems, setWishlistItems] = useState(new Set());
+    const [updatingWishlist, setUpdatingWishlist] = useState(new Set());
 
     useEffect(() => {
         async function load() {
@@ -37,10 +40,19 @@ const ProductsPage = () => {
                     description: product.description,
                     video: product.video,
                     is_featured: product.is_featured,
-                    is_fav: product.is_fav
+                    is_fav: product.is_fav || false
                 }));
                 
                 setAllProducts(transformedProducts);
+                
+                // Initialize wishlist state based on product data
+                const wishlistSet = new Set();
+                transformedProducts.forEach(product => {
+                    if (product.is_fav) {
+                        wishlistSet.add(product.id);
+                    }
+                });
+                setWishlistItems(wishlistSet);
                 
                 // Set categories based on the products
                 const uniqueCategories = [...new Set(transformedProducts.map(p => p.category_id))];
@@ -105,6 +117,72 @@ const ProductsPage = () => {
         setSelectedCategoryIds((prev) =>
             prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
         );
+    };
+
+    const handleWishlistToggle = async (productId, event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (updatingWishlist.has(productId)) {
+            return; // Prevent multiple clicks while updating
+        }
+
+        try {
+            setUpdatingWishlist(prev => new Set([...prev, productId]));
+            
+            const isInWishlist = wishlistItems.has(productId);
+            let response;
+            
+            if (isInWishlist) {
+                response = await removeFromWishlist(productId);
+            } else {
+                response = await addToWishlist(productId);
+            }
+
+            if (response.success) {
+                setWishlistItems(prev => {
+                    const newSet = new Set(prev);
+                    if (isInWishlist) {
+                        newSet.delete(productId);
+                    } else {
+                        newSet.add(productId);
+                    }
+                    return newSet;
+                });
+
+                // Update the product's is_fav status in allProducts
+                setAllProducts(prev => prev.map(product => 
+                    product.id === productId 
+                        ? { ...product, is_fav: !isInWishlist }
+                        : product
+                ));
+
+                // Dispatch custom event to update header wishlist count
+                window.dispatchEvent(new CustomEvent('wishlistUpdated', { 
+                    detail: { 
+                        productId, 
+                        isAdded: !isInWishlist,
+                        message: isInWishlist ? 'Product removed from wishlist' : 'Product added to wishlist'
+                    } 
+                }));
+
+                // Show toast notification
+                if (window.toastr) {
+                    window.toastr.success(isInWishlist ? 'Product removed from wishlist' : 'Product added to wishlist');
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling wishlist:', error);
+            if (window.toastr) {
+                window.toastr.error('Failed to update wishlist. Please try again.');
+            }
+        } finally {
+            setUpdatingWishlist(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(productId);
+                return newSet;
+            });
+        }
     };
 
     // Filter and sort products
@@ -284,8 +362,26 @@ const ProductsPage = () => {
                                                     <img alt="product_images" src={imgSrc} className="img-fluid product-pic" />
 
                                                     {/* <img alt="product_images" src={imgSrc} className="img-fluid product-pic" /> */}
-                                                    <a className="icon-wish-product addwishlist" data-product-id={p.id}>
-                                                        <img src={`${window.location.origin}/webassets/img/unfillwishlist.svg`} className="wishlist-icon" />
+                                                    <a 
+                                                        className="icon-wish-product addwishlist" 
+                                                        data-product-id={p.id}
+                                                        onClick={(e) => handleWishlistToggle(p.id, e)}
+                                                        style={{ cursor: 'pointer' }}
+                                                    >
+                                                        {updatingWishlist.has(p.id) ? (
+                                                            <div className="spinner-border spinner-border-sm text-white" role="status">
+                                                                <span className="visually-hidden">Loading...</span>
+                                                            </div>
+                                                        ) : (
+                                                            <img 
+                                                                src={wishlistItems.has(p.id) 
+                                                                    ? `${window.location.origin}/webassets/img/green-wishlist-bg.svg` 
+                                                                    : `${window.location.origin}/webassets/img/unfillwishlist.svg`
+                                                                } 
+                                                                className="wishlist-icon" 
+                                                                alt={wishlistItems.has(p.id) ? "Remove from wishlist" : "Add to wishlist"}
+                                                            />
+                                                        )}
                                                     </a>
                                                 </div>
                                                 <div className="px-3 py-4 text-black">
