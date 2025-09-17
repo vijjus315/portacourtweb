@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { login as apiLogin } from '../api/auth.js';
+import { checkAndOpenOTPVerification } from '../utils/otpVerification.js';
 
 function getCsrf() {
     // Look for a <meta> tag in the HTML with name="csrf-token"
@@ -31,15 +32,21 @@ const LoginModal = () => {
 
         if (data.success === true) { 
             // If login was successful (API returned success flag)
+            console.log('🎉 Login API call successful');
             
             // Store token and user data in localStorage
             if (data.body && data.body.token) {
                 localStorage.setItem('auth_token', data.body.token);
                 localStorage.setItem('user_data', JSON.stringify(data.body.user));
+                console.log('💾 User data stored in localStorage');
             }
 
-            if (data.body && data.body.user && data.body.user.is_verify === 1) { 
-                // If the user's email/account is already verified
+            // Check OTP verification status after successful login
+            if (data.body && data.body.user && data.body.user.is_otp_verified === 1) { 
+                // Case 1: User's OTP is already verified (is_otp_verified === 1)
+                // → Redirect to home page
+                console.log('✅ Login successful - OTP already verified, redirecting to home page');
+                console.log('🔍 is_otp_verified:', data.body.user.is_otp_verified);
 
                 if (window.toastr) window.toastr.success(data.message || 'Logged in successfully'); 
                 // Show success toast message if toastr library is available
@@ -56,7 +63,11 @@ const LoginModal = () => {
                 window.location.href = '/'; 
                 // Redirect user to homepage
             } else { 
-                // If the user is not verified (requires OTP verification)
+                // Case 2: User's OTP is not verified (is_otp_verified === 0 or undefined)
+                // → Open VerifyEmailModal for OTP verification
+                console.log('🔄 Login successful but OTP not verified, opening VerifyEmailModal');
+                console.log('📧 User email:', data.body?.user?.email || email);
+                console.log('🔍 is_otp_verified:', data.body?.user?.is_otp_verified);
 
                 // Get the login modal element
                 const loginEl = document.getElementById('loginmodal');
@@ -67,28 +78,45 @@ const LoginModal = () => {
                 } catch (_) {} 
                 // If Bootstrap modal instance not found, safely ignore the error
 
-                // Find the span/element where email is displayed in OTP modal
-                const emailDisplay = document.getElementById('emailDisplay');
-                if (emailDisplay) emailDisplay.innerText = data.body?.user?.email || email; 
-                // Update it with the user's email (from API response or input)
-
-                // Hidden input for OTP form to pass email
-                const ve = document.getElementById('verifyOtpEmail');
-                if (ve) ve.value = data.body?.user?.email || email; 
-                // Store email value in hidden field for OTP verification
-
-                // Initialize the verify-email modal
-                const verifyModal = new window.bootstrap.Modal(document.getElementById('verifyemail'));
-                verifyModal.show(); 
-                // Show the OTP verification modal
+                // Use utility function to check and open OTP verification
+                const needsOTPVerification = checkAndOpenOTPVerification(data.body.user, data.body?.user?.email || email);
+                
+                if (needsOTPVerification) {
+                  console.log('✅ VerifyEmailModal opened successfully');
+                } else {
+                  console.log('⚠️ VerifyEmailModal could not be opened');
+                }
 
                 if (window.toastr && data.message) window.toastr.success(data.message); 
                 // Show a message (e.g. "OTP sent to your email") in toast
             }
         } else { 
             // If login was not successful
+            console.log('❌ Login failed:', data);
 
-            if (data.errors) { 
+            // Check if the error is specifically about OTP verification
+            if (data.message === "Please verify your OTP") {
+                console.log('🔄 Login failed due to OTP verification required, opening VerifyEmailModal');
+                
+                // Hide login modal
+                const loginEl = document.getElementById('loginmodal');
+                try { 
+                    window.bootstrap.Modal.getInstance(loginEl)?.hide(); 
+                } catch (_) {} 
+
+                // Use utility function to check and open OTP verification
+                // We'll use the email from the form since the API didn't return user data
+                const needsOTPVerification = checkAndOpenOTPVerification({ is_otp_verified: 0 }, email);
+                
+                if (needsOTPVerification) {
+                  console.log('✅ VerifyEmailModal opened successfully for OTP verification');
+                } else {
+                  console.log('⚠️ VerifyEmailModal could not be opened');
+                }
+
+                // Show the OTP verification message
+                if (window.toastr) window.toastr.info(data.message); 
+            } else if (data.errors) { 
                 // If server returned validation errors
                 setErrors(data.errors); 
                 // Save them into state so UI can display inline errors
@@ -100,11 +128,60 @@ const LoginModal = () => {
         }
     } catch (err) { 
         // Handle unexpected errors (network/server issues)
+        console.log('❌ Login error:', err);
+        console.log('🔍 Error structure:', {
+            status: err.status,
+            data: err.data,
+            response: err.response,
+            message: err.data?.message || err.response?.data?.message
+        });
 
         if (err.response && err.response.status === 422) { 
             // If backend returned validation errors (HTTP 422 Unprocessable Entity)
             setErrors(err.response.data.errors || {}); 
             // Save those validation errors into state
+        } else if (err.response && err.response.data && err.response.data.message === "Please verify your OTP") {
+            // Handle OTP verification error from network response
+            console.log('🔄 Network error - OTP verification required, opening VerifyEmailModal');
+            
+            // Hide login modal
+            const loginEl = document.getElementById('loginmodal');
+            try { 
+                window.bootstrap.Modal.getInstance(loginEl)?.hide(); 
+            } catch (_) {} 
+
+            // Use utility function to check and open OTP verification
+            const needsOTPVerification = checkAndOpenOTPVerification({ is_otp_verified: 0 }, email);
+            
+            if (needsOTPVerification) {
+              console.log('✅ VerifyEmailModal opened successfully for OTP verification');
+            } else {
+              console.log('⚠️ VerifyEmailModal could not be opened');
+            }
+
+            // Show the OTP verification message
+            if (window.toastr) window.toastr.info(err.response.data.message); 
+        } else if (err.status === 400 && err.data && err.data.message === "Please verify your OTP") {
+            // Handle OTP verification error from API client interceptor (400 status)
+            console.log('🔄 API client error - OTP verification required, opening VerifyEmailModal');
+            
+            // Hide login modal
+            const loginEl = document.getElementById('loginmodal');
+            try { 
+                window.bootstrap.Modal.getInstance(loginEl)?.hide(); 
+            } catch (_) {} 
+
+            // Use utility function to check and open OTP verification
+            const needsOTPVerification = checkAndOpenOTPVerification({ is_otp_verified: 0 }, email);
+            
+            if (needsOTPVerification) {
+              console.log('✅ VerifyEmailModal opened successfully for OTP verification');
+            } else {
+              console.log('⚠️ VerifyEmailModal could not be opened');
+            }
+
+            // Show the OTP verification message
+            if (window.toastr) window.toastr.info(err.data.message); 
         } else { 
             // Any other error (network, server crash, etc.)
             if (window.toastr) window.toastr.error('An error occurred. Please try again.'); 

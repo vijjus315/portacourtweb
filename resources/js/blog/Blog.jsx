@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
+import VerifyEmailModal from '../components/VerifyEmailModal';
 import "../bootstrap";
 import BlogDetail from "./BlogDetail";
 
@@ -363,6 +364,7 @@ const Blog = () => {
       {/* Login and Signup Modals */}
       <LoginModal />
       <SignupModal />
+      <VerifyEmailModal />
       
       <Footer />
     </>

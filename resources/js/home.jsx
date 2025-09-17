@@ -4,6 +4,7 @@ import './bootstrap';
 console.log('home.jsx loaded');
 import LoginModal from './components/LoginModal.jsx';
 import SignupModal from './components/SignupModal.jsx';
+import VerifyEmailModal from './components/VerifyEmailModal.jsx';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import FallbackHero from '../images/bzM09pT0Nlgp5pXMcrdkgt8WCMpyt3xcCSNLmWz5.jpg';
@@ -63,6 +64,7 @@ const Home = () => {
             <Header />
             <LoginModal />
             <SignupModal />
+            <VerifyEmailModal />
             {/* Head meta stays in master; if needed, can be added via react-helmet */}
 
             {/* SCORE A DEAL hero slider (banner) */}

@@ -5,7 +5,7 @@ export const login = (payload) => {
 };
 
 export const signup = (payload) => {
-    return apiClient.post("/auth/signup", payload).then((r) => r.data);
+    return apiClient.post("/auth/sign-up", payload).then((r) => r.data);
 };
 
 export const verifyOtp = (payload) => {

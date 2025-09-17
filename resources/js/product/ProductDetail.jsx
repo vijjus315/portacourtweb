@@ -7,6 +7,7 @@ import Reviews from '../components/Reviews.jsx';
 import CustomCourtModal from '../components/CustomCourtModal.jsx';
 import LoginModal from '../components/LoginModal.jsx';
 import SignupModal from '../components/SignupModal.jsx';
+import VerifyEmailModal from '../components/VerifyEmailModal.jsx';
 import { getProductBySlug, getProductById } from '../api/product.js';
 import { getImageUrl, getVideoUrl } from '../utils/imageUtils.js';
 import { addToCart, getCartItems } from '../api/cart.js';
@@ -545,6 +546,7 @@ const ProductDetail = () => {
             {/* Login and Signup Modals */}
             <LoginModal />
             <SignupModal />
+            <VerifyEmailModal />
             
             <Footer />
         </>

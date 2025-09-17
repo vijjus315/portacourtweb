@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
+import VerifyEmailModal from '../components/VerifyEmailModal';
 import '../bootstrap'
 
 const ContactUs = () => {
@@ -353,6 +354,7 @@ const ContactUs = () => {
     {/* Login and Signup Modals */}
     <LoginModal />
     <SignupModal />
+    <VerifyEmailModal />
     
     <Footer />
     </>

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { signup } from "../api/auth.js";
+import { checkAndOpenOTPVerification } from "../utils/otpVerification.js";
 
 function getCsrf() {
     // Look for a <meta> tag in the HTML with name="csrf-token"
@@ -20,10 +22,95 @@ const SignupModal = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setErrors({});
+
+    // Validation
+    const newErrors = {};
+    if (!inputName.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+    if (!phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    }
+    if (!password) {
+      newErrors.password = 'Password is required';
+    } else if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Check terms and conditions
+    const termsCheckbox = document.getElementById('signup-terms');
+    if (!termsCheckbox.checked) {
+      newErrors.terms = 'Please accept the terms and conditions';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await signup({
+        name: inputName,
+        email: email,
+        phoneNumber: phoneNumber,
+        password: password,
+        password_confirmation: confirmPassword,
+        _token: getCsrf()
+      });
+
+      if (response.success) {
+        // Store user data and token
+        localStorage.setItem('auth_token', response.body.token);
+        localStorage.setItem('user_data', JSON.stringify(response.body.user));
+        
+        // Close signup modal
+        const signupModal = document.getElementById('signupmodal');
+        if (signupModal) {
+          const bootstrapModal = window.bootstrap.Modal.getInstance(signupModal);
+          if (bootstrapModal) {
+            bootstrapModal.hide();
+          }
+        }
+
+        // Always show VerifyEmailModal after signup since is_otp_verified is always 0
+        console.log('🔄 Signup successful, checking OTP verification status');
+        
+        // Use utility function to check and open OTP verification
+        const needsOTPVerification = checkAndOpenOTPVerification(response.body.user, email);
+        
+        if (needsOTPVerification) {
+          console.log('✅ VerifyEmailModal opened successfully');
+        } else {
+          console.log('⚠️ VerifyEmailModal could not be opened');
+        }
+      } else {
+        if (response.errors) {
+          setErrors(response.errors);
+        } else {
+          setErrors({ general: response.message || 'Signup failed. Please try again.' });
+        }
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setErrors({ general: 'Signup failed. Please try again.' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -188,7 +275,14 @@ const SignupModal = () => {
                     Terms and Conditions
                   </a>
                 </label>
+                {errors.terms && (
+                  <div className="text-danger error-message mt-1">{errors.terms}</div>
+                )}
               </div>
+
+              {errors.general && (
+                <div className="text-danger text-center mb-3">{errors.general}</div>
+              )}
 
               <div className="pt-4 pb-3">
                 <button
@@ -196,7 +290,16 @@ const SignupModal = () => {
                   className="btn green-btn w-100 box-shadow"
                   disabled={submitting}
                 >
-                  {submitting ? "Submitting..." : "Sign Up"}
+                  {submitting ? (
+                    <>
+                      <div className="spinner-border spinner-border-sm me-2" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                      Submitting...
+                    </>
+                  ) : (
+                    "Sign Up"
+                  )}
                 </button>
               </div>
 

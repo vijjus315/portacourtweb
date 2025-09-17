@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
+import VerifyEmailModal from '../components/VerifyEmailModal';
 import '../bootstrap';
 import Ceo from '../components/Ceo';
 
@@ -402,6 +403,7 @@ const AboutUs = () => {
       {/* Login and Signup Modals */}
       <LoginModal />
       <SignupModal />
+      <VerifyEmailModal />
       
       <Footer />
     </>

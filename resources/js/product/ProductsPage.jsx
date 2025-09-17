@@ -4,6 +4,7 @@ import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import LoginModal from '../components/LoginModal.jsx';
 import SignupModal from '../components/SignupModal.jsx';
+import VerifyEmailModal from '../components/VerifyEmailModal.jsx';
 import { getProducts } from '../api/product.js';
 import { getImageUrl } from '../utils/imageUtils.js';
 import '../bootstrap';
@@ -323,6 +324,7 @@ const ProductsPage = () => {
         {/* Login and Signup Modals */}
         <LoginModal />
         <SignupModal />
+        <VerifyEmailModal />
         
         <Footer />
         </>
