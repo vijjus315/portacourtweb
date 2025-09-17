@@ -9,6 +9,7 @@ import LoginModal from '../components/LoginModal.jsx';
 import SignupModal from '../components/SignupModal.jsx';
 import { getProductBySlug, getProductById } from '../api/product.js';
 import { getImageUrl, getVideoUrl } from '../utils/imageUtils.js';
+import { addToCart, getCartItems } from '../api/cart.js';
 
 function getSlugFromLocation() {
     try {
@@ -118,6 +119,14 @@ const ProductDetail = () => {
     const [quantity, setQuantity] = useState(1);
     // const [review, setReview] = useState(0);
     const [showCourtModal, setShowCourtModal] = useState(false);
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [cartItems, setCartItems] = useState([]);
+
+    // Helper function to update cart count in localStorage
+    const updateCartCountInStorage = (cartItems) => {
+        const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+        localStorage.setItem('cart_count', totalItems.toString());
+    };
 
     const handleModal = () => {
         setShowCourtModal(true);
@@ -190,6 +199,106 @@ const ProductDetail = () => {
         }
         loadProduct();
     }, []);
+
+    // Fetch cart items on component mount
+    useEffect(() => {
+        const fetchCartItems = async () => {
+            try {
+                console.log('📋 ProductDetail: Fetching existing cart items (READ ONLY)');
+                const response = await getCartItems();
+                if (response.success && response.body && response.body.cartItems) {
+                    console.log('📋 ProductDetail: Found existing cart items:', response.body.cartItems.length, 'items');
+                    setCartItems(response.body.cartItems);
+                    // Update cart count in localStorage
+                    updateCartCountInStorage(response.body.cartItems);
+                } else {
+                    console.log('📋 ProductDetail: No cart items found');
+                    updateCartCountInStorage([]);
+                }
+            } catch (error) {
+                console.error('Error fetching cart items:', error);
+            }
+        };
+        fetchCartItems();
+    }, []);
+
+    // Buy Now handler
+    const handleBuyNow = async () => {
+        console.log('🛒 Buy Now button clicked - Starting cart addition process');
+        
+        if (!product || !product.variants || product.variants.length === 0) {
+            console.error('No product or variants available');
+            return;
+        }
+
+        const variant = product.variants[activeVariantIdx];
+        if (!variant || !variant.id) {
+            console.error('No valid variant selected');
+            return;
+        }
+
+        console.log('🛒 Adding product to cart:', {
+            productId: product.id,
+            variantId: variant.id,
+            quantity: quantity
+        });
+
+        setIsAddingToCart(true);
+
+        try {
+            // Check if item already exists in cart
+            const existingCartItem = cartItems.find(item => 
+                item.product_id === product.id && item.variant_id === variant.id
+            );
+
+            if (existingCartItem) {
+                // If item exists, update quantity
+                const newQuantity = existingCartItem.quantity + quantity;
+                const { updateCartItemQuantity } = await import('../api/cart.js');
+                await updateCartItemQuantity(product.id, newQuantity, variant.id);
+                
+                // Update local cart items and localStorage
+                const updatedItems = cartItems.map(item => 
+                    item.id === existingCartItem.id 
+                        ? { ...item, quantity: newQuantity }
+                        : item
+                );
+                setCartItems(updatedItems);
+                updateCartCountInStorage(updatedItems);
+            } else {
+                // If item doesn't exist, add to cart
+                await addToCart(product.id, quantity, variant.id);
+                
+                // Update local cart items and localStorage
+                const newItem = {
+                    id: Date.now(), // Temporary ID for local state
+                    product_id: product.id,
+                    variant_id: variant.id,
+                    quantity: quantity,
+                    product_variants: variant,
+                    products: { id: product.id, title: product.title }
+                };
+                const updatedItems = [...cartItems, newItem];
+                setCartItems(updatedItems);
+                updateCartCountInStorage(updatedItems);
+            }
+
+            // Dispatch cart update event for header
+            window.dispatchEvent(new CustomEvent('cartUpdated'));
+
+            // Show success message (you can replace this with a toast notification)
+            // alert('Product added to cart successfully!');
+            
+            // Redirect to cart page
+            window.location.href = '/cart';
+
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            alert('Failed to add product to cart. Please try again.');
+        } finally {
+            setIsAddingToCart(false);
+        }
+    };
 
     const images = useMemo(() => {
         if (!product) return [];
@@ -340,7 +449,26 @@ const ProductDetail = () => {
                                 <div className="gap-5 quantity-wrapper py-4">
                                     <div className="mt-3 mt-sm-0 edit-wrapper  d-block align-items-center  d-sm-flex gap-4">
                                         <button onClick={handleModal} className="green-btn f16 " type="button">Request Custom Court</button>
-                                        <a className="green-btn f16" href="/cart">Buy Now</a>
+                                        <button 
+                                            className="green-btn f16" 
+                                            onClick={handleBuyNow}
+                                            disabled={isAddingToCart}
+                                            style={{ 
+                                                opacity: isAddingToCart ? 0.6 : 1,
+                                                cursor: isAddingToCart ? 'not-allowed' : 'pointer'
+                                            }}
+                                        >
+                                            {isAddingToCart ? (
+                                                <>
+                                                    <div className="spinner-border spinner-border-sm me-2" role="status">
+                                                        <span className="visually-hidden">Loading...</span>
+                                                    </div>
+                                                    Adding...
+                                                </>
+                                            ) : (
+                                                'Buy Now'
+                                            )}
+                                        </button>
                                         <a className=" addwishlist topwish-list">
                                             <img src={`${window.location.origin}/webassets/img/unfillwishlist.svg`} className="wishlist-icon" />
                                         </a>

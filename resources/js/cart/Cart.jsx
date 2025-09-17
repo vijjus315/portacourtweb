@@ -14,6 +14,12 @@ const Cart = () => {
   const [error, setError] = useState(null);
   const [updatingItems, setUpdatingItems] = useState(new Map());
 
+  // Helper function to update cart count in localStorage
+  const updateCartCountInStorage = (cartItems) => {
+    const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+    localStorage.setItem('cart_count', totalItems.toString());
+  };
+
   // Calculate totals
   const subtotal = cartItems.reduce((total, item) => {
     const price = parseFloat(item.product_variants.discounted_price || item.product_variants.price);
@@ -36,7 +42,12 @@ const Cart = () => {
         setError(null);
         const response = await getCartItems();
         if (response.success) {
-          setCartItems(response.body.cartItems || []);
+          const items = response.body.cartItems || [];
+          setCartItems(items);
+          // Update cart count in localStorage
+          updateCartCountInStorage(items);
+          // Dispatch cart update event for header
+          window.dispatchEvent(new CustomEvent('cartUpdated'));
         } else {
           setError(response.message || 'Failed to fetch cart items');
         }
@@ -68,13 +79,18 @@ const Cart = () => {
     try {
       await updateCartItemQuantity(item.product_id, newQuantity, item.variant_id);
       // Update local state
-      setCartItems(prevItems => 
-        prevItems.map(item => 
-          item.id === cartItemId 
-            ? { ...item, quantity: newQuantity }
-            : item
-        )
+      const updatedItems = cartItems.map(item => 
+        item.id === cartItemId 
+          ? { ...item, quantity: newQuantity }
+          : item
       );
+      setCartItems(updatedItems);
+      
+      // Update cart count in localStorage
+      updateCartCountInStorage(updatedItems);
+      
+      // Dispatch cart update event for header
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
     } catch (err) {
       console.error('Error updating quantity:', err);
       // You might want to show a toast notification here
@@ -95,7 +111,14 @@ const Cart = () => {
     try {
       await removeCartItem(item.variant_id);
       // Update local state
-      setCartItems(prevItems => prevItems.filter(item => item.id !== cartItemId));
+      const updatedItems = cartItems.filter(item => item.id !== cartItemId);
+      setCartItems(updatedItems);
+      
+      // Update cart count in localStorage
+      updateCartCountInStorage(updatedItems);
+      
+      // Dispatch cart update event for header
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
     } catch (err) {
       console.error('Error removing item:', err);
       // You might want to show a toast notification here

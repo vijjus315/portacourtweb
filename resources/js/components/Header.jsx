@@ -1,28 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { isAuthenticated, getUserData, clearAuthData } from '../api/auth.js';
+import { getCartItems } from '../api/cart.js';
 import "../bootstrap"
 
 const Header = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userData, setUserData] = useState(null);
+    // Initialize authentication state synchronously to prevent flash of login/signup buttons
+    const [isLoggedIn, setIsLoggedIn] = useState(() => {
+        try {
+            return isAuthenticated();
+        } catch (error) {
+            console.error('Error checking initial auth state:', error);
+            return false;
+        }
+    });
+    const [userData, setUserData] = useState(() => {
+        try {
+            return getUserData();
+        } catch (error) {
+            console.error('Error getting initial user data:', error);
+            return null;
+        }
+    });
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [currentPath, setCurrentPath] = useState('');
+    const [cartItemCount, setCartItemCount] = useState(() => {
+        // Try to get cart count from localStorage to prevent flash of 0
+        try {
+            const savedCount = localStorage.getItem('cart_count');
+            return savedCount ? parseInt(savedCount, 10) : 0;
+        } catch (error) {
+            console.error('Error getting initial cart count:', error);
+            return 0;
+        }
+    });
+    const [isAuthLoading, setIsAuthLoading] = useState(false);
+
+    // Function to fetch and update cart count
+    const updateCartCount = async () => {
+        try {
+            const response = await getCartItems();
+            if (response.success && response.body && response.body.cartItems) {
+                const totalItems = response.body.cartItems.reduce((total, item) => total + item.quantity, 0);
+                setCartItemCount(totalItems);
+                // Save cart count to localStorage for persistence across page navigation
+                localStorage.setItem('cart_count', totalItems.toString());
+            } else {
+                setCartItemCount(0);
+                localStorage.setItem('cart_count', '0');
+            }
+        } catch (error) {
+            console.error('Error fetching cart count:', error);
+            setCartItemCount(0);
+            localStorage.setItem('cart_count', '0');
+        }
+    };
 
     useEffect(() => {
         // Check authentication status on component mount
         const checkAuthStatus = () => {
-            const authenticated = isAuthenticated();
-            const user = getUserData();
-            setIsLoggedIn(authenticated);
-            setUserData(user);
+            setIsAuthLoading(true);
+            try {
+                const authenticated = isAuthenticated();
+                const user = getUserData();
+                setIsLoggedIn(authenticated);
+                setUserData(user);
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                setIsLoggedIn(false);
+                setUserData(null);
+            } finally {
+                setIsAuthLoading(false);
+            }
         };
 
+        // Always check auth status to ensure it's up to date
         checkAuthStatus();
+        
+        // Update cart count on component mount
+        updateCartCount();
 
         // Listen for storage changes (when user logs in/out in another tab)
         const handleStorageChange = (e) => {
             if (e.key === 'auth_token' || e.key === 'user_data') {
                 checkAuthStatus();
+                updateCartCount(); // Update cart count when auth changes
             }
         };
 
@@ -31,11 +92,15 @@ const Header = () => {
         // Listen for custom login/logout events
         window.addEventListener('userLoggedIn', checkAuthStatus);
         window.addEventListener('userLoggedOut', checkAuthStatus);
+        
+        // Listen for cart update events
+        window.addEventListener('cartUpdated', updateCartCount);
 
         return () => {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('userLoggedIn', checkAuthStatus);
             window.removeEventListener('userLoggedOut', checkAuthStatus);
+            window.removeEventListener('cartUpdated', updateCartCount);
         };
     }, []);
 
@@ -177,10 +242,16 @@ const Header = () => {
                                     <span className="number-count wishlistcount">0</span>
                                 </a>
                                 <a className="wishlist-icon text-decoration-none position-relative me-2" href="/cart"><img src={`${window.location.origin}/webassets/img/addtocart.svg`} />
-                                    <span className="number-count cartcount">0</span>
+                                    <span className="number-count cartcount">{cartItemCount}</span>
                                 </a>
                             </div>
-                            {!isLoggedIn ? (
+                            {isAuthLoading ? (
+                                <div className="d-flex gap-4 align-items-center">
+                                    <div className="spinner-border spinner-border-sm text-white" role="status">
+                                        <span className="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            ) : !isLoggedIn ? (
                                 <div className="d-flex gap-4 align-items-center">
                                     <button className="btn green-btn text-white" data-bs-toggle="modal" data-bs-target="#loginmodal" type="button">LOGIN</button>
                                     <button className="btn blue-btn text-white " data-bs-toggle="modal" data-bs-target="#signupmodal" type="button">SIGN UP</button>
