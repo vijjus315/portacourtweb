@@ -1,3 +1,6 @@
+{{-- This page has been converted to React component: resources/js/orders/MyOrders.jsx --}}
+{{-- The React component preserves all original design and logic --}}
+
 @extends('web.utils.master')
 @section('content')
 <section class="py-5">

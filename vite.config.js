@@ -25,6 +25,8 @@ const rewritesPlugin = {
                 req.url = "/wish-list/index.html";
             } else if (req.url.startsWith("/track-orders")) {
                 req.url = "/track-order/index.html";
+            } else if (req.url.startsWith("/myorders")) {
+                req.url = "/myorders/index.html";
             }
             next();
         });
@@ -44,6 +46,7 @@ export default defineConfig({
                 blog: "blog/index.html",
                 blogDetail: "blogs-detail/index.html",
                 Cart: "cart/index.html",
+                myOrders: "myorders/index.html",
             },
         },
     },
