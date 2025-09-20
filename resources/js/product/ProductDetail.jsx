@@ -9,6 +9,7 @@ import LoginModal from '../components/LoginModal.jsx';
 import SignupModal from '../components/SignupModal.jsx';
 import VerifyEmailModal from '../components/VerifyEmailModal.jsx';
 import ChangePasswordModal from '../components/ChangePasswordModal.jsx';
+import EditProfileModal from '../components/EditProfileModal.jsx';
 import { getProductBySlug, getProductById } from '../api/product.js';
 import { getImageUrl, getVideoUrl } from '../utils/imageUtils.js';
 import { addToCart, getCartItems } from '../api/cart.js';
@@ -549,6 +550,7 @@ const ProductDetail = () => {
             <SignupModal />
             <VerifyEmailModal />
             <ChangePasswordModal />
+            <EditProfileModal />
             
             <Footer />
         </>

@@ -6,6 +6,7 @@ import LoginModal from '../components/LoginModal.jsx';
 import SignupModal from '../components/SignupModal.jsx';
 import VerifyEmailModal from '../components/VerifyEmailModal.jsx';
 import ChangePasswordModal from '../components/ChangePasswordModal.jsx';
+import EditProfileModal from '../components/EditProfileModal.jsx';
 import { getProducts } from '../api/product.js';
 import { addToWishlist, removeFromWishlist } from '../api/wishlist.js';
 import { getImageUrl } from '../utils/imageUtils.js';
@@ -425,6 +426,7 @@ const ProductsPage = () => {
         <SignupModal />
         <VerifyEmailModal />
         <ChangePasswordModal />
+        <EditProfileModal />
         
         <Footer />
         </>

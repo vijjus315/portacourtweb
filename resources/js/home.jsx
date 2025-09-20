@@ -5,6 +5,7 @@ console.log('home.jsx loaded');
 import LoginModal from './components/LoginModal.jsx';
 import SignupModal from './components/SignupModal.jsx';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import EditProfileModal from './components/EditProfileModal';
 
 import VerifyEmailModal from './components/VerifyEmailModal.jsx';
 import Header from './components/Header.jsx';
@@ -68,6 +69,7 @@ const Home = () => {
             <SignupModal />
             <VerifyEmailModal />
             <ChangePasswordModal />
+        <EditProfileModal />
             {/* Head meta stays in master; if needed, can be added via react-helmet */}
 
             {/* SCORE A DEAL hero slider (banner) */}
