@@ -1,5 +1,8 @@
+{{-- This page has been converted to React component: resources/js/address/Address.jsx --}}
+{{-- The React component preserves all original design and logic --}}
 @extends('web.utils.master')
 @section('content')
+{{-- Original Blade content converted to React --}}
 <section class="py-5">
     <div class="container">
         <div class="row align-items-center">
