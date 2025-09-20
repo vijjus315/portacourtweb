@@ -24,6 +24,10 @@ export const resetPassword = (payload) => {
     return apiClient.post("/auth/reset-password", payload).then((r) => r.data);
 };
 
+export const changePassword = (payload) => {
+    return apiClient.post("/auth/change-password", payload).then((r) => r.data);
+};
+
 export const logout = () => {
     return apiClient.post("/auth/logout").then((r) => r.data);
 };
@@ -47,4 +51,4 @@ export const clearAuthData = () => {
     localStorage.removeItem('user_data');
 };
 
-export default { login, signup, verifyOtp, resendOtp, forgotPassword, resetPassword, logout, getAuthToken, getUserData, isAuthenticated, clearAuthData };
+export default { login, signup, verifyOtp, resendOtp, forgotPassword, resetPassword, changePassword, logout, getAuthToken, getUserData, isAuthenticated, clearAuthData };

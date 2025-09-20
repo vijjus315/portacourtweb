@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import VerifyEmailModal from '../components/VerifyEmailModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import '../bootstrap'
 
 
@@ -68,6 +69,7 @@ const TrackOrder = () => {
     <LoginModal />
     <SignupModal />
     <VerifyEmailModal />
+    <ChangePasswordModal />
     
     <Footer />
     </>

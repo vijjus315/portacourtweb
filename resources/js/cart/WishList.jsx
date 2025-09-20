@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import VerifyEmailModal from '../components/VerifyEmailModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import { getWishlistItems, addToWishlist, removeFromWishlist } from '../api/wishlist.js';
 import { getImageUrl } from '../utils/imageUtils.js';
 import '../bootstrap';
@@ -107,10 +108,11 @@ const Wishlist = () => {
                         </div>
                     </div>
                 </section>
-                <LoginModal />
-                <SignupModal />
-                <VerifyEmailModal />
-                <Footer />
+                 <LoginModal />
+                 <SignupModal />
+                 <VerifyEmailModal />
+                 <ChangePasswordModal />
+                 <Footer />
             </>
         );
     }
@@ -140,10 +142,11 @@ const Wishlist = () => {
                         </div>
                     </div>
                 </section>
-                <LoginModal />
-                <SignupModal />
-                <VerifyEmailModal />
-                <Footer />
+                 <LoginModal />
+                 <SignupModal />
+                 <VerifyEmailModal />
+                 <ChangePasswordModal />
+                 <Footer />
             </>
         );
     }
@@ -241,6 +244,7 @@ const Wishlist = () => {
             <LoginModal />
             <SignupModal />
             <VerifyEmailModal />
+            <ChangePasswordModal />
 
             <Footer />
         </>

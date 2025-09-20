@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import VerifyEmailModal from '../components/VerifyEmailModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import '../bootstrap';
 import Ceo from '../components/Ceo';
 
@@ -404,6 +405,7 @@ const AboutUs = () => {
       <LoginModal />
       <SignupModal />
       <VerifyEmailModal />
+      <ChangePasswordModal />
       
       <Footer />
     </>

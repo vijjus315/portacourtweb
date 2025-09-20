@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import SignupModal from '../components/SignupModal';
 import VerifyEmailModal from '../components/VerifyEmailModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import { getCartItems, updateCartItemQuantity, removeCartItem } from '../api/cart.js';
 import { getImageUrl } from '../utils/imageUtils.js';
 import '../bootstrap';
@@ -504,6 +505,7 @@ const Cart = () => {
       <LoginModal />
       <SignupModal />
       <VerifyEmailModal />
+      <ChangePasswordModal />
 
       <Footer />
     </>

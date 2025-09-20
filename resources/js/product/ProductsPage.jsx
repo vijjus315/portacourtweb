@@ -5,6 +5,7 @@ import Footer from '../components/Footer.jsx';
 import LoginModal from '../components/LoginModal.jsx';
 import SignupModal from '../components/SignupModal.jsx';
 import VerifyEmailModal from '../components/VerifyEmailModal.jsx';
+import ChangePasswordModal from '../components/ChangePasswordModal.jsx';
 import { getProducts } from '../api/product.js';
 import { addToWishlist, removeFromWishlist } from '../api/wishlist.js';
 import { getImageUrl } from '../utils/imageUtils.js';
@@ -423,6 +424,7 @@ const ProductsPage = () => {
         <LoginModal />
         <SignupModal />
         <VerifyEmailModal />
+        <ChangePasswordModal />
         
         <Footer />
         </>
