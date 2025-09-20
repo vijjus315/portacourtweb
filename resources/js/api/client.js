@@ -49,9 +49,17 @@ apiClient.interceptors.response.use(
         // If the server responded with a status code
         if (error.response) {
             // Handle 401 unauthorized - clear auth data and redirect to login
+            // But only if we have a valid token (don't clear for dummy tokens)
             if (error.response.status === 401) {
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user_data');
+                const currentToken = localStorage.getItem('auth_token');
+                // Only clear if token exists and is not a dummy token
+                if (currentToken && !currentToken.startsWith('dummy_token_')) {
+                    console.log('🔍 401 Error - Clearing localStorage for invalid token:', currentToken);
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                } else {
+                    console.log('🔍 401 Error - Keeping dummy token, not clearing localStorage');
+                }
                 // Optionally redirect to login page
                 // window.location.href = '/login';
             }

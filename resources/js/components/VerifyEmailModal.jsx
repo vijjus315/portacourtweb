@@ -96,7 +96,7 @@ const VerifyEmailModal = () => {
                     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
                     const updatedUserData = {
                         ...userData,
-                        is_otp_verified: 1
+                        is_verify: 1
                     };
                     
                     // Use utility function to update user data
