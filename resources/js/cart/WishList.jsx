@@ -22,9 +22,9 @@ const Wishlist = () => {
     const fetchWishlistItems = async () => {
         try {
             setIsLoading(true);
-            const response = await getWishlistItems();
+            const response = await getWishlistItems(34); // Using default user ID
             if (response.success) {
-                setWishlistItems(response.body.wishlistItems || []);
+                setWishlistItems(response.body || []);
             } else {
                 setError(response.message || 'Failed to fetch wishlist items');
             }
@@ -42,7 +42,11 @@ const Wishlist = () => {
                 // Remove from wishlist
                 const response = await removeFromWishlist(productId);
                 if (response.success) {
-                    setWishlistItems(prev => prev.filter(item => item.product_id !== productId));
+                    setWishlistItems(prev => prev.filter(item => item.id !== productId));
+                    // Dispatch event to update header count
+                    window.dispatchEvent(new CustomEvent('wishlistUpdated', { 
+                        detail: { isAdded: false } 
+                    }));
                 }
             } else {
                 // Add to wishlist
@@ -50,6 +54,10 @@ const Wishlist = () => {
                 if (response.success) {
                     // Refresh wishlist items
                     fetchWishlistItems();
+                    // Dispatch event to update header count
+                    window.dispatchEvent(new CustomEvent('wishlistUpdated', { 
+                        detail: { isAdded: true } 
+                    }));
                 }
             }
         } catch (err) {
@@ -154,10 +162,9 @@ const Wishlist = () => {
                     <div className="row">
                         <div className="row pt-4">
                             {wishlistItems.length > 0 ? (
-                                wishlistItems.map((item) => {
-                                    const product = item.products || item;
-                                    const variant = item.product_variants || item.variants?.[0];
-                                    const isInWishlist = true; // Since it's in wishlist
+                                wishlistItems.map((product) => {
+                                    const variant = product.product_variants?.[0];
+                                    const isInWishlist = product.is_fav === true; // Since it's in wishlist
                                     
                                     return (
                                         <div key={product.id} className="col-md-6 col-lg-3 mb-3">
@@ -165,7 +172,7 @@ const Wishlist = () => {
                                                 <div className="product-feature-img product-bg position-relative">
                                                     <a href={`/product-detail/${product.slug}`}>
                                                         <img 
-                                                            src={getImageUrl(product.product_images?.[0]?.image_url || product.image_url)} 
+                                                            src={getImageUrl(product.product_images?.[0]?.image_url)} 
                                                             className="img-fluid product-pic"
                                                             alt={product.title}
                                                         />

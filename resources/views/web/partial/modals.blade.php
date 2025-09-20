@@ -1,6 +1,7 @@
-<!-- Login Modal now rendered by React component in resources/js/components/LoginModal.jsx -->
+{{-- All modals are now handled by React components --}}
+{{-- Login Modal now rendered by React component in resources/js/components/LoginModal.jsx --}}
 
-<!-- Signup Modal -->
+{{-- Signup Modal - Now handled by SignupModal.jsx --}}
 <div class="modal fade" id="signupmodal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-content-width">
@@ -566,3 +567,21 @@
             </div>
         </div>
     </div>
+
+{{-- 
+NOTE: All modals above have been converted to React components located in:
+- resources/js/components/LoginModal.jsx
+- resources/js/components/SignupModal.jsx  
+- resources/js/components/VerifyEmailModal.jsx
+- resources/js/components/ForgotPasswordModal.jsx
+- resources/js/components/ForgotVerifyOtpModal.jsx
+- resources/js/components/ResetPasswordModal.jsx
+- resources/js/components/SuccessfullModal.jsx
+- resources/js/components/EditProfileModal.jsx
+- resources/js/components/ChangePasswordModal.jsx
+- resources/js/components/IntroVideoModal.jsx
+- resources/js/components/CustomCourtModal.jsx
+
+These React components provide the same functionality as the HTML modals above
+but with better state management, validation, and user experience.
+--}}

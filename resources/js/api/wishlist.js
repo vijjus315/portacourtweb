@@ -1,14 +1,29 @@
 import apiClient from "./client.js";
 
 /**
- * Get wishlist items for the current user
+ * Get wishlist items for the current user using the products API with is_fav filter
  */
-export const getWishlistItems = async () => {
+export const getWishlistItems = async (userId = 34) => {
     try {
         console.log('🔍 API: Fetching wishlist items');
-        const response = await apiClient.get('/wishlist/get-wishlist');
-        console.log('✅ API: Wishlist items fetched successfully', response.data);
-        return response.data;
+        const response = await apiClient.get(`/product/get-products?user_id=${userId}`);
+        console.log('✅ API: All products fetched successfully', response.data);
+        
+        // Filter products where is_fav is true
+        if (response.data.success && response.data.body) {
+            const wishlistProducts = response.data.body.filter(product => product.is_fav === true);
+            return {
+                success: true,
+                body: wishlistProducts,
+                message: 'Wishlist items fetched successfully'
+            };
+        }
+        
+        return {
+            success: true,
+            body: [],
+            message: 'No wishlist items found'
+        };
     } catch (error) {
         console.error('❌ API: Error fetching wishlist items:', error);
         throw error;

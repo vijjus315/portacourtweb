@@ -14,7 +14,7 @@ const ProductsPage = () => {
     const [allProducts, setAllProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
-    const [sortBy, setSortBy] = useState(''); // remove 'desc' which responsible for showing filter by default.
+    const [sortBy, setSortBy] = useState('desc'); // Default to high to low sorting
     const [priceRange, setPriceRange] = useState([0, 15000]);
     const [isLoading, setIsLoading] = useState(true);
     const [wishlistItems, setWishlistItems] = useState(new Set());
@@ -198,11 +198,13 @@ const ProductsPage = () => {
             const price = Number(v.price || 0);
             return price >= priceRange[0] && price <= priceRange[1];
         });
-        list.sort((a, b) => {
-            const va = Number(((a.variants && a.variants[0]) || {}).discounted_price || 0);
-            const vb = Number(((b.variants && b.variants[0]) || {}).discounted_price || 0);
-            return sortBy === 'asc' ? va - vb : vb - va;
-        });
+        if (sortBy) {
+            list.sort((a, b) => {
+                const va = Number(((a.variants && a.variants[0]) || {}).discounted_price || 0);
+                const vb = Number(((b.variants && b.variants[0]) || {}).discounted_price || 0);
+                return sortBy === 'asc' ? va - vb : vb - va;
+            });
+        }
         return list;
     }, [allProducts, selectedCategoryIds, sortBy, priceRange]);
 
@@ -297,7 +299,7 @@ const ProductsPage = () => {
 
                     <div className="col-lg-9">
                         <h3 className="font-oswald mb-3">Products</h3>
-                        {(selectedCategoryIds.length > 0 || sortBy) && (
+                        {(selectedCategoryIds.length > 0 || (sortBy && sortBy !== 'desc')) && (
                             <div className="productfilter d-flex align-items-baseline gap-2">
                                 <p className="fw-500 mb-0 lh-1">Filter:</p>
                                 <div className="d-flex gap-2 align-items-center flex-wrap" id="applied-filters">
@@ -315,10 +317,10 @@ const ProductsPage = () => {
                                             </button>
                                         );
                                     })}
-                                    {sortBy && (
+                                    {sortBy && sortBy !== 'desc' && (
                                         <button
                                             className="border-0 filterbtn primary-theme fw-400 font-Yantramanav d-flex align-items-center gap-2"
-                                            onClick={() => setSortBy('')}
+                                            onClick={() => setSortBy('desc')}
                                         >
                                             <span>{sortBy === 'desc' ? 'High to Low' : 'Low to High'}</span>
                                             <img src={`${window.location.origin}/webassets/img/crossfilter.svg`} />
@@ -327,7 +329,7 @@ const ProductsPage = () => {
                                     <a
                                         className="border-0 clear-filter fw-400 font-Yantramanav d-flex align-items-center gap-2"
                                         href="/products"
-                                        onClick={(e) => { e.preventDefault(); setSelectedCategoryIds([]); setSortBy(''); setPriceRange([0, 15000]); }}
+                                        onClick={(e) => { e.preventDefault(); setSelectedCategoryIds([]); setSortBy('desc'); setPriceRange([0, 15000]); }}
                                     >
                                         Clear All Filter
                                     </a>

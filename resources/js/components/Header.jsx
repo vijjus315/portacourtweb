@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { isAuthenticated, getUserData, clearAuthData } from '../api/auth.js';
 import { getCartItems } from '../api/cart.js';
+import { getWishlistItems } from '../api/wishlist.js';
 import "../bootstrap"
 
 const Header = () => {
@@ -65,8 +66,27 @@ const Header = () => {
         }
     };
 
-    // Function to update wishlist count
-    const updateWishlistCount = (isAdded) => {
+    // Function to fetch and update wishlist count
+    const updateWishlistCount = async () => {
+        try {
+            const response = await getWishlistItems(34); // Using default user ID
+            if (response.success && response.body && Array.isArray(response.body)) {
+                const count = response.body.length;
+                setWishlistCount(count);
+                localStorage.setItem('wishlist_count', count.toString());
+            } else {
+                setWishlistCount(0);
+                localStorage.setItem('wishlist_count', '0');
+            }
+        } catch (error) {
+            console.error('Error fetching wishlist count:', error);
+            setWishlistCount(0);
+            localStorage.setItem('wishlist_count', '0');
+        }
+    };
+
+    // Function to update wishlist count based on add/remove action
+    const updateWishlistCountByAction = (isAdded) => {
         setWishlistCount(prev => {
             const newCount = isAdded ? prev + 1 : Math.max(0, prev - 1);
             localStorage.setItem('wishlist_count', newCount.toString());
@@ -97,12 +117,16 @@ const Header = () => {
         
         // Update cart count on component mount
         updateCartCount();
+        
+        // Update wishlist count on component mount
+        updateWishlistCount();
 
         // Listen for storage changes (when user logs in/out in another tab)
         const handleStorageChange = (e) => {
             if (e.key === 'auth_token' || e.key === 'user_data') {
                 checkAuthStatus();
                 updateCartCount(); // Update cart count when auth changes
+                updateWishlistCount(); // Update wishlist count when auth changes
             }
         };
 
@@ -117,7 +141,9 @@ const Header = () => {
         
         // Listen for wishlist update events
         const handleWishlistUpdate = (event) => {
-            updateWishlistCount(event.detail.isAdded);
+            if (event.detail && typeof event.detail.isAdded === 'boolean') {
+                updateWishlistCountByAction(event.detail.isAdded);
+            }
         };
         window.addEventListener('wishlistUpdated', handleWishlistUpdate);
 
