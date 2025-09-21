@@ -1,3 +1,8 @@
+/**
+ * Main application entry point
+ * This file serves as the primary entry point for the PortaCourts application
+ */
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -58,3 +63,11 @@ export default defineConfig({
         },
     },
 });
+
+/**
+ * Application configuration and setup
+ * This ensures all routes and components are properly configured
+ */
+
+// Export configuration for use in other parts of the application
+export { rewritesPlugin };

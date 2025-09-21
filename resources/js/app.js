@@ -1,39 +1,42 @@
 /**
  * First we will load all of this project's JavaScript dependencies which
- * includes Vue and other libraries. It is a great starting point when
- * building robust, powerful web applications using Vue and Laravel.
+ * includes React and other libraries. It is a great starting point when
+ * building robust, powerful web applications using React and Laravel.
  */
 
 import './bootstrap';
-import { createApp } from 'vue';
 
 /**
- * Next, we will create a fresh Vue application instance. You may then begin
- * registering components with the application instance so they are ready
- * to use in your application's views. An example is included for you.
+ * This is the main entry point for the application.
+ * It imports the necessary modules and initializes the React components.
  */
 
-const app = createApp({});
-
-import ExampleComponent from './components/ExampleComponent.vue';
-app.component('example-component', ExampleComponent);
+// Import main application entry point
+import './main.jsx';
 
 /**
- * The following block of code may be used to automatically register your
- * Vue components. It will recursively scan this directory for the Vue
- * components and automatically register them with their "basename".
- *
- * Eg. ./components/ExampleComponent.vue -> <example-component></example-component>
+ * Additional imports for specific pages and components
+ * These are loaded dynamically based on the current page
  */
 
-// Object.entries(import.meta.glob('./**/*.vue', { eager: true })).forEach(([path, definition]) => {
-//     app.component(path.split('/').pop().replace(/\.\w+$/, ''), definition.default);
-// });
+// Import React components for different pages
+import './home.jsx';
+import './product/ProductsPage.jsx';
+import './product/ProductDetail.jsx';
+import './cart/Cart.jsx';
+import './cart/WishList.jsx';
+import './contact/ContactUs.jsx';
+import './blog/Blog.jsx';
+import './about/AboutUs.jsx';
+import './trackOrder/TrackOrder.jsx';
+import './orders/MyOrders.jsx';
+import './address/Address.jsx';
+
+// Import authentication components
+import './login.jsx';
+import './signup.jsx';
 
 /**
- * Finally, we will attach the application instance to a HTML element with
- * an "id" attribute of "app". This element is included with the "auth"
- * scaffolding. Otherwise, you will need to add an element yourself.
+ * The application is now ready to run.
+ * All React components will be mounted automatically based on their respective HTML containers.
  */
-
-app.mount('#app');
