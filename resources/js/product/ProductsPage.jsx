@@ -21,6 +21,11 @@ const ProductsPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [wishlistItems, setWishlistItems] = useState(new Set());
     const [updatingWishlist, setUpdatingWishlist] = useState(new Set());
+    
+    // Applied filter states (what's actually filtering the products)
+    const [appliedCategoryIds, setAppliedCategoryIds] = useState([]);
+    const [appliedSortBy, setAppliedSortBy] = useState('desc');
+    const [appliedPriceRange, setAppliedPriceRange] = useState([0, 15000]);
 
     useEffect(() => {
         async function load() {
@@ -121,6 +126,14 @@ const ProductsPage = () => {
         );
     };
 
+    const handleApplyFilter = (e) => {
+        e.preventDefault();
+        // Apply the current form state to the applied filters
+        setAppliedCategoryIds([...selectedCategoryIds]);
+        setAppliedSortBy(sortBy);
+        setAppliedPriceRange([...priceRange]);
+    };
+
     const handleWishlistToggle = async (productId, event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -187,28 +200,27 @@ const ProductsPage = () => {
         }
     };
 
-    // Filter and sort products
+    // Filter and sort products based on applied filters
     const filteredProducts = useMemo(() => {
         let list = [...allProducts];
 
-
-        if (selectedCategoryIds.length) {
-            list = list.filter((p) => selectedCategoryIds.includes(String(p.category_id)));
+        if (appliedCategoryIds.length) {
+            list = list.filter((p) => appliedCategoryIds.includes(String(p.category_id)));
         }
         list = list.filter((p) => {
             const v = (p.variants && p.variants[0]) || {};
             const price = Number(v.price || 0);
-            return price >= priceRange[0] && price <= priceRange[1];
+            return price >= appliedPriceRange[0] && price <= appliedPriceRange[1];
         });
-        if (sortBy) {
+        if (appliedSortBy) {
             list.sort((a, b) => {
                 const va = Number(((a.variants && a.variants[0]) || {}).discounted_price || 0);
                 const vb = Number(((b.variants && b.variants[0]) || {}).discounted_price || 0);
-                return sortBy === 'asc' ? va - vb : vb - va;
+                return appliedSortBy === 'asc' ? va - vb : vb - va;
             });
         }
         return list;
-    }, [allProducts, selectedCategoryIds, sortBy, priceRange]);
+    }, [allProducts, appliedCategoryIds, appliedSortBy, appliedPriceRange]);
 
     useEffect(() => {
         // Initialize jQuery UI slider if available to match original design
@@ -227,7 +239,8 @@ const ProductsPage = () => {
                         slide: function (_e, ui) {
                             const [v1, v2] = ui.values;
                             window.$('#amount').val(`$${v1} - $${v2}`);
-                            // Just update text; commit on Apply Filter
+                            // Update the price range state but don't apply until Apply Filter is clicked
+                            setPriceRange([v1, v2]);
                         }
                     });
                 }
@@ -246,7 +259,7 @@ const ProductsPage = () => {
                 <div className="row">
                     <div className="col-lg-3">
                         <h3 className="font-oswald mb-3">Filters</h3>
-                        <form method="GET" id="filter-form">
+                        <form method="GET" id="filter-form" onSubmit={handleApplyFilter}>
                         <div className="filter-inner">
                             <div>
                                 <h4 className="font-oswald py-2">Category</h4>
@@ -301,37 +314,52 @@ const ProductsPage = () => {
 
                     <div className="col-lg-9">
                         <h3 className="font-oswald mb-3">Products</h3>
-                        {(selectedCategoryIds.length > 0 || (sortBy && sortBy !== 'desc')) && (
+                        {(appliedCategoryIds.length > 0 || (appliedSortBy && appliedSortBy !== 'desc')) && (
                             <div className="productfilter d-flex align-items-baseline gap-2">
                                 <p className="fw-500 mb-0 lh-1">Filter:</p>
                                 <div className="d-flex gap-2 align-items-center flex-wrap" id="applied-filters">
-                                    {selectedCategoryIds.map(id => {
+                                    {appliedCategoryIds.map(id => {
                                         const c = categories.find(x => String(x.id) === String(id));
                                         if (!c) return null;
                                         return (
                                             <button
                                                 key={id}
                                                 className="border-0 filterbtn primary-theme fw-400 font-Yantramanav d-flex align-items-center gap-2"
-                                                onClick={() => toggleCategory(String(id))}
+                                                onClick={() => {
+                                                    const newAppliedIds = appliedCategoryIds.filter(x => x !== id);
+                                                    setAppliedCategoryIds(newAppliedIds);
+                                                    setSelectedCategoryIds(newAppliedIds);
+                                                }}
                                             >
                                                 <span>{c.title}</span>
                                                 <img src={`${window.location.origin}/webassets/img/crossfilter.svg`} />
                                             </button>
                                         );
                                     })}
-                                    {sortBy && sortBy !== 'desc' && (
+                                    {appliedSortBy && appliedSortBy !== 'desc' && (
                                         <button
                                             className="border-0 filterbtn primary-theme fw-400 font-Yantramanav d-flex align-items-center gap-2"
-                                            onClick={() => setSortBy('desc')}
+                                            onClick={() => {
+                                                setAppliedSortBy('desc');
+                                                setSortBy('desc');
+                                            }}
                                         >
-                                            <span>{sortBy === 'desc' ? 'High to Low' : 'Low to High'}</span>
+                                            <span>{appliedSortBy === 'desc' ? 'High to Low' : 'Low to High'}</span>
                                             <img src={`${window.location.origin}/webassets/img/crossfilter.svg`} />
                                         </button>
                                     )}
                                     <a
                                         className="border-0 clear-filter fw-400 font-Yantramanav d-flex align-items-center gap-2"
                                         href="/products"
-                                        onClick={(e) => { e.preventDefault(); setSelectedCategoryIds([]); setSortBy('desc'); setPriceRange([0, 15000]); }}
+                                        onClick={(e) => { 
+                                            e.preventDefault(); 
+                                            setSelectedCategoryIds([]); 
+                                            setSortBy('desc'); 
+                                            setPriceRange([0, 15000]);
+                                            setAppliedCategoryIds([]);
+                                            setAppliedSortBy('desc');
+                                            setAppliedPriceRange([0, 15000]);
+                                        }}
                                     >
                                         Clear All Filter
                                     </a>
