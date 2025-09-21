@@ -3,6 +3,7 @@ import apiClient from "./client.js";
 export const getAddresses = async () => {
     try {
         const response = await apiClient.get("/product/get-user-addresses");
+        console.log(response.data);
         return response.data;
     } catch (error) {
         console.error('Error fetching addresses:', error);
@@ -12,7 +13,7 @@ export const getAddresses = async () => {
 
 export const addAddress = async (addressData) => {
     try {
-        const response = await apiClient.post("/address/store", addressData);
+        const response = await apiClient.post("/product/add-user-address", addressData);
         return response.data;
     } catch (error) {
         console.error('Error adding address:', error);
@@ -20,9 +21,19 @@ export const addAddress = async (addressData) => {
     }
 };
 
+export const updateAddress = async (addressId, addressData) => {
+    try {
+        const response = await apiClient.post(`/product/update-user-address?id=${addressId}`, addressData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating address:', error);
+        throw error;
+    }
+};
+
 export const deleteAddress = async (addressId) => {
     try {
-        const response = await apiClient.delete(`/address/remove/${addressId}`);
+        const response = await apiClient.delete(`/product/delete-user-address?id=${addressId}`);
         return response.data;
     } catch (error) {
         console.error('Error deleting address:', error);
@@ -30,4 +41,4 @@ export const deleteAddress = async (addressId) => {
     }
 };
 
-export default { getAddresses, addAddress, deleteAddress };
+export default { getAddresses, addAddress, updateAddress, deleteAddress };
