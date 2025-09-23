@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import "./bootstrap";
 
@@ -12,6 +12,37 @@ const Signup = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Clear form data when modal is shown
+  useEffect(() => {
+    const modal = document.getElementById('signupmodal');
+    if (modal) {
+      const handleShow = () => {
+        // Clear all form data
+        setInputName("");
+        setEmail("");
+        setPhoneNumber("");
+        setPassword("");
+        setConfirmPassword("");
+        setSubmitting(false);
+        setErrors({});
+        setShowPassword(false);
+        setShowConfirmPassword(false);
+        
+        // Clear form inputs in DOM
+        const form = document.getElementById('signupForm');
+        if (form) {
+          form.reset();
+        }
+      };
+
+      modal.addEventListener('shown.bs.modal', handleShow);
+      
+      return () => {
+        modal.removeEventListener('shown.bs.modal', handleShow);
+      };
+    }
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();

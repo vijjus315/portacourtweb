@@ -311,54 +311,38 @@ const Header = () => {
                                         data-bs-target="#loginmodal" 
                                         type="button"
                                         onClick={(e) => {
+                                            console.log('🔄 Login button clicked');
+                                            
                                             // Clear the OTP verification flag first
                                             window.otpVerificationInProgress = false;
                                             
-                                            // Minimal cleanup before allowing Bootstrap to handle the modal
-                                            setTimeout(() => {
-                                                try {
-                                                    // Clean up any existing modal states
+                                            // Don't prevent default - let Bootstrap handle the modal opening naturally
+                                            // Just do minimal cleanup
+                                            try {
+                                                // Only remove backdrops that might interfere
+                                                const backdrops = document.querySelectorAll('.modal-backdrop');
+                                                backdrops.forEach(backdrop => {
+                                                    try {
+                                                        backdrop.remove();
+                                                    } catch (backdropError) {
+                                                        console.warn('Error removing backdrop:', backdropError);
+                                                    }
+                                                });
+                                                
+                                                // Ensure body is not in modal-open state
+                                                if (document.body.classList.contains('modal-open')) {
                                                     document.body.classList.remove('modal-open');
                                                     document.body.style.overflow = '';
                                                     document.body.style.paddingRight = '';
-                                                    
-                                                    // Remove any existing backdrops
-                                                    const backdrops = document.querySelectorAll('.modal-backdrop');
-                                                    backdrops.forEach(backdrop => {
-                                                        try {
-                                                            backdrop.remove();
-                                                        } catch (backdropError) {
-                                                            console.warn('Error removing backdrop:', backdropError);
-                                                        }
-                                                    });
-                                                    
-                                                    // Reset modal display states only - don't dispose instances
-                                                    const allModals = document.querySelectorAll('.modal');
-                                                    allModals.forEach(modal => {
-                                                        try {
-                                                            // Reset modal display state only
-                                                            modal.removeAttribute('aria-hidden');
-                                                            if (modal.classList) {
-                                                                modal.classList.remove('show', 'fade');
-                                                            }
-                                                            modal.style.display = 'none';
-                                                            modal.style.paddingRight = '';
-                                                        } catch (modalError) {
-                                                            console.warn('Error cleaning up modal:', modalError);
-                                                        }
-                                                    });
-                                                    
-                                                    // Focus management
-                                                    window.focus();
-                                                    document.body.focus();
-                                                    
-                                                } catch (cleanupError) {
-                                                    console.warn('Error during cleanup:', cleanupError);
                                                 }
-                                            }, 10);
+                                                
+                                                console.log('✅ Minimal cleanup completed, Bootstrap should handle modal opening');
+                                            } catch (cleanupError) {
+                                                console.warn('Error during cleanup:', cleanupError);
+                                            }
                                             
-                                            // Let Bootstrap handle the modal naturally - don't prevent default
-                                            // The data-bs-toggle="modal" and data-bs-target="#loginmodal" will handle the modal opening
+                                            // Let Bootstrap handle the modal opening naturally
+                                            // The data-bs-toggle="modal" and data-bs-target="#loginmodal" will work
                                         }}
                                     >
                                         LOGIN
@@ -369,11 +353,37 @@ const Header = () => {
                                         data-bs-target="#signupmodal" 
                                         type="button"
                                         onClick={(e) => {
+                                            console.log('🔄 Signup button clicked');
+                                            
                                             // Clear the OTP verification flag first
                                             window.otpVerificationInProgress = false;
                                             
-                                            // Let Bootstrap handle the modal naturally - no cleanup to avoid vibration
-                                            // The data-bs-toggle="modal" and data-bs-target="#signupmodal" will handle the modal opening
+                                            // Minimal cleanup to ensure clean state
+                                            try {
+                                                // Only remove backdrops that might interfere
+                                                const backdrops = document.querySelectorAll('.modal-backdrop');
+                                                backdrops.forEach(backdrop => {
+                                                    try {
+                                                        backdrop.remove();
+                                                    } catch (backdropError) {
+                                                        console.warn('Error removing backdrop:', backdropError);
+                                                    }
+                                                });
+                                                
+                                                // Ensure body is not in modal-open state
+                                                if (document.body.classList.contains('modal-open')) {
+                                                    document.body.classList.remove('modal-open');
+                                                    document.body.style.overflow = '';
+                                                    document.body.style.paddingRight = '';
+                                                }
+                                                
+                                                console.log('✅ Signup button cleanup completed');
+                                            } catch (cleanupError) {
+                                                console.warn('Error during signup cleanup:', cleanupError);
+                                            }
+                                            
+                                            // Let Bootstrap handle the modal naturally
+                                            // The data-bs-toggle="modal" and data-bs-target="#signupmodal" will work
                                         }}
                                     >
                                         SIGN UP

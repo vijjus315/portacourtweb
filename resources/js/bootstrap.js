@@ -63,7 +63,13 @@ function safeModalFocus(modalElement) {
 
 document.addEventListener('DOMContentLoaded', function() {
     // Listen for all modal show events
+    document.addEventListener('show.bs.modal', function(event) {
+        console.log('🔄 Modal about to show:', event.target.id);
+    });
+    
     document.addEventListener('shown.bs.modal', function(event) {
+        console.log('🎉 Modal shown:', event.target.id);
+        
         // Ensure page is active when any modal is shown
         window.focus();
         document.body.focus();
@@ -95,33 +101,56 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Minimal cleanup when any modal is hidden - don't dispose instances
+        // Comprehensive cleanup when any modal is hidden - don't dispose instances
         setTimeout(() => {
-            // Focus management
-            window.focus();
-            document.body.focus();
-            
-            // Clean up modal states
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-            
-            // Remove all modal backdrops
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(backdrop => backdrop.remove());
-            
-            // Remove aria-hidden from all modals except OTP modal if user needs verification
-            const allModals = document.querySelectorAll('.modal');
-            allModals.forEach(modal => {
-                if (!(modal.id === 'verifyemail' && authToken && userData && userData.is_otp_verified === 0)) {
-                    modal.removeAttribute('aria-hidden');
-                    modal.style.display = 'none';
+            try {
+                console.log('🔄 Performing comprehensive modal cleanup...');
+                
+                // Focus management
+                window.focus();
+                document.body.focus();
+                
+                // Clean up modal states
+                if (document.body && document.body.classList) {
+                    document.body.classList.remove('modal-open');
                 }
-            });
-            
-            // DON'T dispose modal instances - let them remain for reuse
-            console.log('✅ Global modal cleanup completed (instances preserved)');
-        }, 100);
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                
+                // Remove all modal backdrops
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => {
+                    try {
+                        backdrop.remove();
+                    } catch (backdropError) {
+                        console.warn('Error removing backdrop:', backdropError);
+                    }
+                });
+                
+                // Remove aria-hidden from ALL modals to prevent accessibility conflicts
+                const allModals = document.querySelectorAll('.modal');
+                allModals.forEach(modal => {
+                    try {
+                        // Always remove aria-hidden to prevent conflicts
+                        modal.removeAttribute('aria-hidden');
+                        
+                        // Reset modal display state
+                        if (modal.classList) {
+                            modal.classList.remove('show', 'fade');
+                        }
+                        modal.style.display = 'none';
+                        modal.style.paddingRight = '';
+                    } catch (modalError) {
+                        console.warn('Error cleaning up modal:', modalError);
+                    }
+                });
+                
+                // DON'T dispose modal instances - let them remain for reuse
+                console.log('✅ Global modal cleanup completed - all modals ready for next use');
+            } catch (cleanupError) {
+                console.error('Error during global modal cleanup:', cleanupError);
+            }
+        }, 50);
     });
 
     // Listen for pageActivated custom event
@@ -135,11 +164,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target && event.target.matches('[data-bs-toggle="modal"]')) {
             // Don't interfere if OTP verification is in progress
             if (window.otpVerificationInProgress) {
+                console.log('🔄 OTP verification in progress, skipping modal button cleanup');
                 return;
             }
             
             // Only cleanup for OTP modal specifically - avoid interfering with other modals
             if (event.target.getAttribute('data-bs-target') === '#verifyemail') {
+                console.log('🔄 OTP modal button clicked, performing minimal cleanup');
                 // Minimal cleanup - just remove any lingering backdrops
                 setTimeout(() => {
                     try {
@@ -151,10 +182,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 console.warn('Error removing backdrop:', backdropError);
                             }
                         });
+                        console.log('✅ Backdrop cleanup completed for OTP modal');
                     } catch (cleanupError) {
                         console.warn('Error during minimal cleanup:', cleanupError);
                     }
-                }, 50);
+                }, 10);
+            } else {
+                console.log('🔄 Other modal button clicked:', event.target.getAttribute('data-bs-target'));
             }
         }
     });
@@ -162,7 +196,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global error handler for Bootstrap modal errors
     window.addEventListener('error', function(event) {
         if (event.error && event.error.message && 
-            (event.error.message.includes('focus') || event.error.message.includes('classList'))) {
+            (event.error.message.includes('focus') || event.error.message.includes('classList') || 
+             event.error.message.includes('aria-hidden'))) {
             console.warn('Bootstrap modal error caught and handled:', event.error);
             event.preventDefault();
             

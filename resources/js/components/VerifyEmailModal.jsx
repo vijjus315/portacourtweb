@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { verifyOtp, resendOtp } from '../api/auth.js';
+import { verifyOtp, resendOtp, isAuthenticated } from '../api/auth.js';
 import { updateUserDataAfterOTPVerification, clearAuthDataOnOTPCancel } from '../utils/otpVerification.js';
 import '../bootstrap';
 
@@ -71,6 +71,13 @@ const VerifyEmailModal = () => {
         setError('');
 
         try {
+            console.log('🔄 Sending OTP verification request:', {
+                email: email,
+                otp: otpCode,
+                type: verificationType,
+                _token: getCsrf()
+            });
+            
             const response = await verifyOtp({
                 email: email,
                 otp: otpCode,
@@ -79,6 +86,8 @@ const VerifyEmailModal = () => {
             });
 
             if (response.success) {
+                console.log('✅ OTP verification successful:', response);
+                
                 // Close modal
                 const modal = document.getElementById('verifyemail');
                 if (modal) {
@@ -96,19 +105,70 @@ const VerifyEmailModal = () => {
                 // Update user data in localStorage to mark as verified
                 try {
                     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-                    const updatedUserData = {
-                        ...userData,
-                        is_otp_verified: 1
-                    };
                     
-                    // Use utility function to update user data
+                    // Check if API response contains updated user data
+                    let updatedUserData;
+                    if (response.user && response.user.is_otp_verified === 1) {
+                        // Use API response data if available
+                        updatedUserData = response.user;
+                        console.log('🔄 Using updated user data from API response:', updatedUserData);
+                    } else if (response.body && response.body.user && response.body.user.is_otp_verified === 1) {
+                        // Check alternative response structure
+                        updatedUserData = response.body.user;
+                        console.log('🔄 Using updated user data from response.body.user:', updatedUserData);
+                    } else {
+                        // Fallback to updating existing user data
+                        updatedUserData = {
+                            ...userData,
+                            is_otp_verified: 1
+                        };
+                        console.log('🔄 Updating existing user data (fallback):', updatedUserData);
+                    }
+                    
+                    // For signup flow, ensure we have all necessary user data
+                    if (verificationType === 'signup' && userData.id) {
+                        updatedUserData = {
+                            ...userData,
+                            ...updatedUserData,
+                            is_otp_verified: 1
+                        };
+                        console.log('🔄 Enhanced user data for signup flow:', updatedUserData);
+                    }
+                    
+                    // Ensure auth token is still present
+                    const authToken = localStorage.getItem('auth_token');
+                    if (!authToken) {
+                        console.error('❌ No auth token found after OTP verification');
+                        return;
+                    }
+                    
+                    // Use utility function to update user data and dispatch login event
                     updateUserDataAfterOTPVerification(updatedUserData);
+                    
+                    // Additional dispatch to ensure header is updated
+                    window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                        detail: updatedUserData 
+                    }));
+                    
+                    console.log('✅ User logged in event dispatched with data:', updatedUserData);
+                    
+                    // Verify authentication status after update
+                    setTimeout(() => {
+                        const isAuth = isAuthenticated();
+                        console.log('🔍 Authentication status after OTP verification:', isAuth);
+                        if (!isAuth) {
+                            console.error('❌ User is not authenticated after OTP verification');
+                        }
+                    }, 50);
+                    
                 } catch (err) {
                     console.error('Error updating user data:', err);
                 }
                 
-                // Redirect to home page
-                window.location.href = '/';
+                // Small delay to ensure events are processed before redirect
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 100);
             } else {
                 setError(response.message || 'Invalid OTP. Please try again.');
             }
@@ -216,26 +276,38 @@ const VerifyEmailModal = () => {
                 }
                 
                 // Determine verification type based on context
-                // Check if we came from login (look for login modal being closed recently)
                 const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
                 const authToken = localStorage.getItem('auth_token');
                 
-                // If user just logged in and has token but needs OTP verification, it's login type
-                if (authToken && userData.email && userData.is_otp_verified === 0) {
-                    // Check if login modal was recently closed (within last 2 seconds)
-                    const loginModalClosed = sessionStorage.getItem('loginModalClosed');
-                    const currentTime = Date.now();
-                    if (loginModalClosed && (currentTime - parseInt(loginModalClosed)) < 2000) {
-                        setVerificationType('login');
-                        console.log('🔄 Setting verification type to login');
-                    } else {
-                        setVerificationType('signup');
-                        console.log('🔄 Setting verification type to signup');
-                    }
-                } else {
+                // Check if this is from signup flow (user just signed up)
+                const signupModalClosed = sessionStorage.getItem('signupModalClosed');
+                const loginModalClosed = sessionStorage.getItem('loginModalClosed');
+                const currentTime = Date.now();
+                
+                // If signup modal was recently closed, it's signup type
+                if (signupModalClosed && (currentTime - parseInt(signupModalClosed)) < 3000) {
+                    setVerificationType('signup');
+                    console.log('🔄 Setting verification type to signup (from signup modal)');
+                }
+                // If login modal was recently closed, it's login type
+                else if (loginModalClosed && (currentTime - parseInt(loginModalClosed)) < 3000) {
+                    setVerificationType('login');
+                    console.log('🔄 Setting verification type to login (from login modal)');
+                }
+                // Default to signup if we can't determine the source
+                else {
                     setVerificationType('signup');
                     console.log('🔄 Setting verification type to signup (default)');
                 }
+                
+                console.log('🔍 OTP Verification Context:', {
+                    authToken: !!authToken,
+                    userData: userData,
+                    signupModalClosed: signupModalClosed,
+                    loginModalClosed: loginModalClosed,
+                    verificationType: signupModalClosed && (currentTime - parseInt(signupModalClosed)) < 3000 ? 'signup' : 
+                                     loginModalClosed && (currentTime - parseInt(loginModalClosed)) < 3000 ? 'login' : 'signup'
+                });
             };
 
             const handleHide = () => {
@@ -262,32 +334,19 @@ const VerifyEmailModal = () => {
                     clearAuthDataOnOTPCancel();
                 }
                 
-                // Comprehensive modal cleanup to ensure other modals can open
+                // Minimal modal cleanup to ensure other modals can open
                 setTimeout(() => {
                     try {
-                        // Comprehensive modal cleanup - don't dispose instances
-                        const allModals = document.querySelectorAll('.modal');
-                        allModals.forEach(modal => {
-                            try {
-                                // Reset modal state only - don't dispose instances
-                                modal.removeAttribute('aria-hidden');
-                                if (modal.classList) {
-                                    modal.classList.remove('show', 'fade');
-                                }
-                                modal.style.display = 'none';
-                                modal.style.paddingRight = '';
-                                
-                                // Remove any modal dialogs
-                                const modalDialogs = modal.querySelectorAll('.modal-dialog');
-                                modalDialogs.forEach(dialog => {
-                                    if (dialog.classList) {
-                                        dialog.classList.remove('modal-dialog-scrollable');
-                                    }
-                                });
-                            } catch (modalError) {
-                                console.warn('Error cleaning up modal:', modalError);
+                        // Only clean up the OTP modal itself
+                        const otpModal = document.getElementById('verifyemail');
+                        if (otpModal) {
+                            otpModal.removeAttribute('aria-hidden');
+                            if (otpModal.classList) {
+                                otpModal.classList.remove('show', 'fade');
                             }
-                        });
+                            otpModal.style.display = 'none';
+                            otpModal.style.paddingRight = '';
+                        }
                         
                         // Focus management
                         window.focus();
@@ -310,11 +369,11 @@ const VerifyEmailModal = () => {
                         document.body.style.overflow = '';
                         document.body.style.paddingRight = '';
                         
-                        console.log('✅ Modal cleanup completed, other modals should now work');
+                        console.log('✅ OTP modal cleanup completed, other modals should now work');
                     } catch (cleanupError) {
                         console.error('Error during modal cleanup:', cleanupError);
                     }
-                }, 200);
+                }, 100);
             };
 
             modal.addEventListener('shown.bs.modal', handleShow);
