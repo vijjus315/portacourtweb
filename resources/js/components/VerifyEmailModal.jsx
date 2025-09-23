@@ -188,6 +188,26 @@ const VerifyEmailModal = () => {
                 // Set global flag to prevent interference
                 window.otpVerificationInProgress = true;
                 
+                // Clear previous OTP data
+                setOtp(['', '', '', '', '']);
+                setError('');
+                setIsLoading(false);
+                setIsResending(false);
+                
+                // Clear OTP input fields in DOM
+                const otpInputs = document.querySelectorAll('.otp-input-field');
+                otpInputs.forEach(input => {
+                    input.value = '';
+                });
+                
+                // Reset focus to first input
+                setTimeout(() => {
+                    const firstInput = document.querySelector('.otp-input-field');
+                    if (firstInput) {
+                        firstInput.focus();
+                    }
+                }, 100);
+                
                 const emailDisplay = document.getElementById('emailDisplay');
                 const emailInput = document.getElementById('verifyOtpEmail');
                 if (emailDisplay && emailInput) {
@@ -221,6 +241,12 @@ const VerifyEmailModal = () => {
             const handleHide = () => {
                 // Clear the global flag
                 window.otpVerificationInProgress = false;
+                
+                // Clear OTP data when modal is hidden
+                setOtp(['', '', '', '', '']);
+                setError('');
+                setIsLoading(false);
+                setIsResending(false);
                 
                 // Check if this is a cancellation (not a successful verification)
                 // If user has auth token but OTP is not verified, they cancelled the verification
@@ -296,6 +322,12 @@ const VerifyEmailModal = () => {
             return () => {
                 modal.removeEventListener('shown.bs.modal', handleShow);
                 modal.removeEventListener('hidden.bs.modal', handleHide);
+                
+                // Clear OTP data when component unmounts
+                setOtp(['', '', '', '', '']);
+                setError('');
+                setIsLoading(false);
+                setIsResending(false);
             };
         }
     }, []);
