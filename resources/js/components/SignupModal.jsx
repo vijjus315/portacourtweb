@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { signup } from "../api/auth.js";
+import { checkAndOpenOTPVerification } from "../utils/otpVerification.js";
 
 function getCsrf() {
     // Look for a <meta> tag in the HTML with name="csrf-token"
@@ -84,8 +85,10 @@ const SignupModal = () => {
 
       // Store the actual token from API response
       const token = response.body.token;
+      const userData = response.body.user;
       console.log('🔍 API Response - Token:', token);
-      console.log('🔍 API Response - User:', response.body.user);
+      console.log('🔍 API Response - User:', userData);
+      console.log('🔍 OTP Verification Status:', userData.is_otp_verified);
       
       try {
         localStorage.setItem('auth_token', token);
@@ -94,26 +97,13 @@ const SignupModal = () => {
         console.error('❌ Failed to save token:', e);
       }
       
-      // Use the actual user data from API and mark as verified
-      const userData = response.body.user;
-      const verifiedUserData = {
-        ...userData,
-        is_verify: 1,
-        is_otp_verified: 1
-      };
-      
+      // Store the actual user data from API (preserve original values)
       try {
-        localStorage.setItem('user_data', JSON.stringify(verifiedUserData));
-        console.log('✅ User data saved to localStorage:', verifiedUserData);
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        console.log('✅ User data saved to localStorage:', userData);
       } catch (e) {
         console.error('❌ Failed to save user data:', e);
       }
-      
-      // Verify data was saved
-      const savedToken = localStorage.getItem('auth_token');
-      const savedUserData = localStorage.getItem('user_data');
-      console.log('🔍 Verification - Saved token:', savedToken);
-      console.log('🔍 Verification - Saved user data:', savedUserData);
       
       // Close signup modal
       const signupModal = document.getElementById('signupmodal');
@@ -124,14 +114,22 @@ const SignupModal = () => {
         }
       }
 
-      // Dispatch custom event for header update
-      window.dispatchEvent(new CustomEvent('userLoggedIn'));
+      // Check if OTP verification is needed
+      if (userData.is_otp_verified === 0) {
+        console.log('🔄 User needs OTP verification, opening modal...');
+        // Open OTP verification modal
+        checkAndOpenOTPVerification(userData, userData.email);
+      } else {
+        console.log('✅ User OTP is already verified, proceeding with login');
+        // Dispatch custom event for header update
+        window.dispatchEvent(new CustomEvent('userLoggedIn'));
 
-      // Add a small delay to ensure localStorage is saved before redirect
-      setTimeout(() => {
-        // Always redirect to home page
-        window.location.href = '/';
-      }, 100);
+        // Add a small delay to ensure localStorage is saved before redirect
+        setTimeout(() => {
+          // Redirect to home page
+          window.location.href = '/';
+        }, 100);
+      }
       
     } catch (error) {
       // Even on error, redirect to home page

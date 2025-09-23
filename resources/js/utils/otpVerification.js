@@ -11,13 +11,13 @@
  */
 export const checkAndOpenOTPVerification = (userData, email) => {
     console.log('🔍 Checking OTP verification status:', {
-        is_verify: userData?.is_verify,
+        is_otp_verified: userData?.is_otp_verified,
         email: email
     });
 
     // Check if user needs OTP verification
     // OTP verification is needed if is_otp_verified is 0, null, or undefined
-    if (userData && userData.is_verify !== 1) {
+    if (userData && userData.is_otp_verified === 0) {
         console.log('🔄 User needs OTP verification, opening VerifyEmailModal');
         
         // Set email for OTP verification
@@ -67,7 +67,7 @@ export const checkOTPVerificationFromStorage = () => {
         const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
         const email = userData.email;
         
-        if (email && userData.is_verify !== 1) {
+        if (email && userData.is_otp_verified === 0) {
             console.log('🔄 User in localStorage needs OTP verification');
             return checkAndOpenOTPVerification(userData, email);
         }

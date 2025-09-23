@@ -4,7 +4,7 @@ import { updateUserDataAfterOTPVerification } from '../utils/otpVerification.js'
 import '../bootstrap';
 
 const VerifyEmailModal = () => {
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [otp, setOtp] = useState(['', '', '', '', '']);
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -27,7 +27,7 @@ const VerifyEmailModal = () => {
         setError('');
 
         // Auto-focus next input
-        if (value && index < 5) {
+        if (value && index < 4) {
             inputRefs.current[index + 1]?.focus();
         }
     };
@@ -42,17 +42,17 @@ const VerifyEmailModal = () => {
     // Handle paste
     const handlePaste = (e) => {
         e.preventDefault();
-        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 5);
         const newOtp = [...otp];
-        for (let i = 0; i < pastedData.length && i < 6; i++) {
+        for (let i = 0; i < pastedData.length && i < 5; i++) {
             newOtp[i] = pastedData[i];
         }
         setOtp(newOtp);
         setError('');
         
         // Focus the next empty input or the last one
-        const nextEmptyIndex = newOtp.findIndex((digit, idx) => !digit && idx < 6);
-        const focusIndex = nextEmptyIndex !== -1 ? nextEmptyIndex : 5;
+        const nextEmptyIndex = newOtp.findIndex((digit, idx) => !digit && idx < 5);
+        const focusIndex = nextEmptyIndex !== -1 ? nextEmptyIndex : 4;
         inputRefs.current[focusIndex]?.focus();
     };
 
@@ -61,8 +61,8 @@ const VerifyEmailModal = () => {
         e.preventDefault();
         const otpCode = otp.join('');
         
-        if (otpCode.length !== 6) {
-            setError('Please enter all 6 digits');
+        if (otpCode.length !== 5) {
+            setError('Please enter all 5 digits');
             return;
         }
 
@@ -73,6 +73,7 @@ const VerifyEmailModal = () => {
             const response = await verifyOtp({
                 email: email,
                 otp: otpCode,
+                type: "signup",
                 _token: getCsrf()
             });
 
@@ -96,7 +97,7 @@ const VerifyEmailModal = () => {
                     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
                     const updatedUserData = {
                         ...userData,
-                        is_verify: 1
+                        is_otp_verified: 1
                     };
                     
                     // Use utility function to update user data
@@ -213,7 +214,7 @@ const VerifyEmailModal = () => {
                                 <button 
                                     type="submit" 
                                     className="btn green-btn w-100 box-shadow"
-                                    disabled={isLoading || otp.join('').length !== 6}
+                                    disabled={isLoading || otp.join('').length !== 5}
                                 >
                                     {isLoading ? (
                                         <>
