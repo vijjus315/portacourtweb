@@ -114,7 +114,21 @@ const VerifyEmailModal = () => {
             }
         } catch (err) {
             console.error('Error verifying OTP:', err);
-            setError('Failed to verify OTP. Please try again.');
+            
+            // Handle API error response
+            if (err.data) {
+                // Show toast error for invalid/expired OTP
+                if (window.toastr) {
+                    window.toastr.error(err.data.message || 'Invalid or expired OTP');
+                }
+                setError(err.data.message || 'Invalid or expired OTP. Please try again.');
+            } else {
+                // Handle network or other errors
+                if (window.toastr) {
+                    window.toastr.error('Failed to verify OTP. Please try again.');
+                }
+                setError('Failed to verify OTP. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -141,11 +155,26 @@ const VerifyEmailModal = () => {
                     window.toastr.success(response.message || 'OTP sent successfully!');
                 }
             } else {
+                if (window.toastr) {
+                    window.toastr.error(response.message || 'Failed to resend OTP. Please try again.');
+                }
                 setError(response.message || 'Failed to resend OTP. Please try again.');
             }
         } catch (err) {
             console.error('Error resending OTP:', err);
-            setError('Failed to resend OTP. Please try again.');
+            
+            // Handle API error response
+            if (err.data) {
+                if (window.toastr) {
+                    window.toastr.error(err.data.message || 'Failed to resend OTP. Please try again.');
+                }
+                setError(err.data.message || 'Failed to resend OTP. Please try again.');
+            } else {
+                if (window.toastr) {
+                    window.toastr.error('Failed to resend OTP. Please try again.');
+                }
+                setError('Failed to resend OTP. Please try again.');
+            }
         } finally {
             setIsResending(false);
         }
