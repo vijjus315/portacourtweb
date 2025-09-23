@@ -47,7 +47,18 @@ export const getUserData = () => {
 };
 
 export const isAuthenticated = () => {
-    return !!getAuthToken();
+    const token = getAuthToken();
+    if (!token) {
+        return false;
+    }
+    
+    // Check if user data exists and OTP is verified
+    const userData = getUserData();
+    if (!userData || userData.is_otp_verified !== 1) {
+        return false;
+    }
+    
+    return true;
 };
 
 export const clearAuthData = () => {

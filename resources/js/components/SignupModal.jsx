@@ -219,7 +219,6 @@ const SignupModal = () => {
       data-bs-keyboard="false"
       tabIndex="-1"
       aria-labelledby="staticBackdropLabel"
-      aria-hidden="true"
     >
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content modal-content-width">

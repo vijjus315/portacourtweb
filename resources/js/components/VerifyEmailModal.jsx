@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { verifyOtp, resendOtp } from '../api/auth.js';
-import { updateUserDataAfterOTPVerification } from '../utils/otpVerification.js';
+import { updateUserDataAfterOTPVerification, clearAuthDataOnOTPCancel } from '../utils/otpVerification.js';
 import '../bootstrap';
 
 const VerifyEmailModal = () => {
@@ -9,6 +9,7 @@ const VerifyEmailModal = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [isResending, setIsResending] = useState(false);
+    const [verificationType, setVerificationType] = useState('signup');
     const inputRefs = useRef([]);
 
     // Function to get CSRF token
@@ -73,7 +74,7 @@ const VerifyEmailModal = () => {
             const response = await verifyOtp({
                 email: email,
                 otp: otpCode,
-                type: "signup",
+                type: verificationType,
                 _token: getCsrf()
             });
 
@@ -150,28 +151,128 @@ const VerifyEmailModal = () => {
         }
     };
 
-    // Set email when modal is shown
+    // Set email and verification type when modal is shown, and handle modal cancellation
     useEffect(() => {
         const modal = document.getElementById('verifyemail');
         if (modal) {
             const handleShow = () => {
+                // Set global flag to prevent interference
+                window.otpVerificationInProgress = true;
+                
                 const emailDisplay = document.getElementById('emailDisplay');
                 const emailInput = document.getElementById('verifyOtpEmail');
                 if (emailDisplay && emailInput) {
                     const emailValue = emailDisplay.textContent || emailInput.value;
                     setEmail(emailValue);
                 }
+                
+                // Determine verification type based on context
+                // Check if we came from login (look for login modal being closed recently)
+                const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+                const authToken = localStorage.getItem('auth_token');
+                
+                // If user just logged in and has token but needs OTP verification, it's login type
+                if (authToken && userData.email && userData.is_otp_verified === 0) {
+                    // Check if login modal was recently closed (within last 2 seconds)
+                    const loginModalClosed = sessionStorage.getItem('loginModalClosed');
+                    const currentTime = Date.now();
+                    if (loginModalClosed && (currentTime - parseInt(loginModalClosed)) < 2000) {
+                        setVerificationType('login');
+                        console.log('🔄 Setting verification type to login');
+                    } else {
+                        setVerificationType('signup');
+                        console.log('🔄 Setting verification type to signup');
+                    }
+                } else {
+                    setVerificationType('signup');
+                    console.log('🔄 Setting verification type to signup (default)');
+                }
+            };
+
+            const handleHide = () => {
+                // Clear the global flag
+                window.otpVerificationInProgress = false;
+                
+                // Check if this is a cancellation (not a successful verification)
+                // If user has auth token but OTP is not verified, they cancelled the verification
+                const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+                const authToken = localStorage.getItem('auth_token');
+                
+                // Only proceed with cleanup if user actually cancelled (not if modal was programmatically hidden)
+                if (authToken && userData && userData.is_otp_verified === 0) {
+                    console.log('🔄 OTP verification modal was cancelled, clearing auth data');
+                    
+                    // Don't dispose the OTP modal instance - let it remain for potential reuse
+                    
+                    clearAuthDataOnOTPCancel();
+                }
+                
+                // Comprehensive modal cleanup to ensure other modals can open
+                setTimeout(() => {
+                    try {
+                        // Comprehensive modal cleanup - don't dispose instances
+                        const allModals = document.querySelectorAll('.modal');
+                        allModals.forEach(modal => {
+                            try {
+                                // Reset modal state only - don't dispose instances
+                                modal.removeAttribute('aria-hidden');
+                                if (modal.classList) {
+                                    modal.classList.remove('show', 'fade');
+                                }
+                                modal.style.display = 'none';
+                                modal.style.paddingRight = '';
+                                
+                                // Remove any modal dialogs
+                                const modalDialogs = modal.querySelectorAll('.modal-dialog');
+                                modalDialogs.forEach(dialog => {
+                                    if (dialog.classList) {
+                                        dialog.classList.remove('modal-dialog-scrollable');
+                                    }
+                                });
+                            } catch (modalError) {
+                                console.warn('Error cleaning up modal:', modalError);
+                            }
+                        });
+                        
+                        // Focus management
+                        window.focus();
+                        document.body.focus();
+                        
+                        // Remove all modal backdrops
+                        const backdrops = document.querySelectorAll('.modal-backdrop');
+                        backdrops.forEach(backdrop => {
+                            try {
+                                backdrop.remove();
+                            } catch (backdropError) {
+                                console.warn('Error removing backdrop:', backdropError);
+                            }
+                        });
+                        
+                        // Reset body classes and styles
+                        if (document.body && document.body.classList) {
+                            document.body.classList.remove('modal-open');
+                        }
+                        document.body.style.overflow = '';
+                        document.body.style.paddingRight = '';
+                        
+                        console.log('✅ Modal cleanup completed, other modals should now work');
+                    } catch (cleanupError) {
+                        console.error('Error during modal cleanup:', cleanupError);
+                    }
+                }, 200);
             };
 
             modal.addEventListener('shown.bs.modal', handleShow);
+            modal.addEventListener('hidden.bs.modal', handleHide);
             return () => {
                 modal.removeEventListener('shown.bs.modal', handleShow);
+                modal.removeEventListener('hidden.bs.modal', handleHide);
             };
         }
     }, []);
 
     return (
-        <div className="modal fade" id="verifyemail" data-bs-backdrop="static" data-bs-keyboard="false" tabIndex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div className="modal fade" id="verifyemail" data-bs-backdrop="static" data-bs-keyboard="false" tabIndex="-1" aria-labelledby="staticBackdropLabel">
             <div className="modal-dialog modal-dialog-centered">
                 <div className="modal-content modal-content-width">
                     <div className="modal-header border-0">
@@ -180,6 +281,11 @@ const VerifyEmailModal = () => {
                             className="btn-closed border-0 bg-transparent text-end ms-auto" 
                             data-bs-dismiss="modal" 
                             aria-label="Close"
+                            onClick={() => {
+                                // Immediately activate page when close button is clicked
+                                window.focus();
+                                document.body.focus();
+                            }}
                         >
                             <img src={`${window.location.origin}/webassets/img/cross.svg`} alt="Close" />
                         </button>

@@ -305,8 +305,79 @@ const Header = () => {
                                 </div>
                             ) : !isLoggedIn ? (
                                 <div className="d-flex gap-4 align-items-center">
-                                    <button className="btn green-btn text-white" data-bs-toggle="modal" data-bs-target="#loginmodal" type="button">LOGIN</button>
-                                    <button className="btn blue-btn text-white " data-bs-toggle="modal" data-bs-target="#signupmodal" type="button">SIGN UP</button>
+                                    <button 
+                                        className="btn green-btn text-white" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#loginmodal" 
+                                        type="button"
+                                        onClick={(e) => {
+                                            // Clear the OTP verification flag first
+                                            window.otpVerificationInProgress = false;
+                                            
+                                            // Minimal cleanup before allowing Bootstrap to handle the modal
+                                            setTimeout(() => {
+                                                try {
+                                                    // Clean up any existing modal states
+                                                    document.body.classList.remove('modal-open');
+                                                    document.body.style.overflow = '';
+                                                    document.body.style.paddingRight = '';
+                                                    
+                                                    // Remove any existing backdrops
+                                                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                                                    backdrops.forEach(backdrop => {
+                                                        try {
+                                                            backdrop.remove();
+                                                        } catch (backdropError) {
+                                                            console.warn('Error removing backdrop:', backdropError);
+                                                        }
+                                                    });
+                                                    
+                                                    // Reset modal display states only - don't dispose instances
+                                                    const allModals = document.querySelectorAll('.modal');
+                                                    allModals.forEach(modal => {
+                                                        try {
+                                                            // Reset modal display state only
+                                                            modal.removeAttribute('aria-hidden');
+                                                            if (modal.classList) {
+                                                                modal.classList.remove('show', 'fade');
+                                                            }
+                                                            modal.style.display = 'none';
+                                                            modal.style.paddingRight = '';
+                                                        } catch (modalError) {
+                                                            console.warn('Error cleaning up modal:', modalError);
+                                                        }
+                                                    });
+                                                    
+                                                    // Focus management
+                                                    window.focus();
+                                                    document.body.focus();
+                                                    
+                                                } catch (cleanupError) {
+                                                    console.warn('Error during cleanup:', cleanupError);
+                                                }
+                                            }, 10);
+                                            
+                                            // Let Bootstrap handle the modal naturally - don't prevent default
+                                            // The data-bs-toggle="modal" and data-bs-target="#loginmodal" will handle the modal opening
+                                        }}
+                                    >
+                                        LOGIN
+                                    </button>
+                                    <button 
+                                        className="btn blue-btn text-white" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#signupmodal" 
+                                        type="button"
+                                        onClick={(e) => {
+                                            // Clear the OTP verification flag first
+                                            window.otpVerificationInProgress = false;
+                                            
+                                            // Let Bootstrap handle the modal naturally - no cleanup to avoid vibration
+                                            // The data-bs-toggle="modal" and data-bs-target="#signupmodal" will handle the modal opening
+                                        }}
+                                    >
+                                        SIGN UP
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="dropdown">

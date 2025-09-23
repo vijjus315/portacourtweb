@@ -20,6 +20,7 @@ const LoginModal = () => {
     const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e) => {
+        
     e.preventDefault(); 
     setSubmitting(true); 
     // Set a "submitting" state so UI can show a loader/spinner or disable the button
@@ -272,7 +273,11 @@ const LoginModal = () => {
                                 <button type="submit" className="btn green-btn w-100 box-shadow" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button>
                             </div>
                             <div className="text-center">
-                                <p className="font-Yantramanav light-grey"> Don’t have any account? <a className="theme_color text-decoration-underline fw-500" href="#" data-bs-toggle="modal" data-bs-target="#signupmodal">Sign up</a></p>
+                                <p className="font-Yantramanav light-grey"> Don't have any account? <a className="theme_color text-decoration-underline fw-500" href="#" data-bs-toggle="modal" data-bs-target="#signupmodal" onClick={() => {
+                                    // Ensure page is active when switching to signup modal
+                                    window.focus();
+                                    document.body.focus();
+                                }}>Sign up</a></p>
                             </div>
                         </form>
                     </div>

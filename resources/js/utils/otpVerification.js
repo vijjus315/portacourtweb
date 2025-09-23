@@ -3,6 +3,9 @@
  * Ensures consistent behavior across the application
  */
 
+// Global flag to track OTP verification state
+window.otpVerificationInProgress = false;
+
 /**
  * Checks if user needs OTP verification and opens VerifyEmailModal if needed
  * @param {Object} userData - User data object from API response
@@ -24,6 +27,9 @@ export const checkAndOpenOTPVerification = (userData, email) => {
     
     if (userData && userData.is_otp_verified === 0) {
         console.log('🔄 User needs OTP verification, opening VerifyEmailModal');
+        
+        // Set global flag to prevent interference
+        window.otpVerificationInProgress = true;
         
         // Set email for OTP verification
         const emailDisplay = document.getElementById('emailDisplay');
@@ -52,10 +58,29 @@ export const checkAndOpenOTPVerification = (userData, email) => {
         if (verifyModal) {
             console.log('✅ OTP UTILITY: VerifyEmailModal found, opening...');
             try {
-                const verifyBootstrapModal = new window.bootstrap.Modal(verifyModal);
+                // Clean up any existing modal states first
+                document.body.classList.remove('modal-open');
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+                
+                // Ensure the modal is ready
+                verifyModal.removeAttribute('aria-hidden');
+                verifyModal.style.display = 'none';
+                
+                // Create and show the modal
+                const verifyBootstrapModal = new window.bootstrap.Modal(verifyModal, {
+                    backdrop: 'static',
+                    keyboard: false,
+                    focus: true
+                });
+                
                 console.log('🔍 OTP UTILITY: Bootstrap modal instance created:', verifyBootstrapModal);
-                verifyBootstrapModal.show();
-                console.log('🎉 OTP UTILITY: VerifyEmailModal should now be visible');
+                
+                // Add a small delay to ensure proper modal initialization
+                setTimeout(() => {
+                    verifyBootstrapModal.show();
+                    console.log('🎉 OTP UTILITY: VerifyEmailModal should now be visible');
+                }, 50);
                 return true; // OTP verification is needed
             } catch (modalError) {
                 console.error('❌ OTP UTILITY: Error opening modal:', modalError);
@@ -100,6 +125,9 @@ export const checkOTPVerificationFromStorage = () => {
  */
 export const updateUserDataAfterOTPVerification = (updatedUserData) => {
     try {
+        // Clear the global flag
+        window.otpVerificationInProgress = false;
+        
         localStorage.setItem('user_data', JSON.stringify(updatedUserData));
         console.log('✅ User data updated after OTP verification');
         
@@ -112,8 +140,36 @@ export const updateUserDataAfterOTPVerification = (updatedUserData) => {
     }
 };
 
+/**
+ * Clears authentication data when OTP verification is cancelled
+ * This ensures user is not considered logged in if they cancel OTP verification
+ */
+export const clearAuthDataOnOTPCancel = () => {
+    try {
+        // Clear the global flag
+        window.otpVerificationInProgress = false;
+        
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        console.log('✅ Authentication data cleared due to OTP verification cancellation');
+        
+        // Ensure page becomes active
+        window.focus();
+        document.body.focus();
+        
+        // Dispatch logout event to update header
+        window.dispatchEvent(new CustomEvent('userLoggedOut'));
+        
+        // Dispatch a custom event to indicate page should be active
+        window.dispatchEvent(new CustomEvent('pageActivated'));
+    } catch (error) {
+        console.error('Error clearing auth data on OTP cancel:', error);
+    }
+};
+
 export default {
     checkAndOpenOTPVerification,
     checkOTPVerificationFromStorage,
-    updateUserDataAfterOTPVerification
+    updateUserDataAfterOTPVerification,
+    clearAuthDataOnOTPCancel
 };

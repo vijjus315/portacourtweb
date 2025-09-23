@@ -194,6 +194,11 @@ const Signup = () => {
                   href="#"
                   data-bs-toggle="modal"
                   data-bs-target="#loginmodal"
+                  onClick={() => {
+                    // Ensure page is active when switching to login modal
+                    window.focus();
+                    document.body.focus();
+                  }}
                 >
                   Sign In
                 </a>
