@@ -10,13 +10,18 @@
  * @returns {boolean} - True if OTP verification is needed, false otherwise
  */
 export const checkAndOpenOTPVerification = (userData, email) => {
-    console.log('🔍 Checking OTP verification status:', {
+    console.log('🔍 OTP UTILITY: Checking OTP verification status:', {
         is_otp_verified: userData?.is_otp_verified,
-        email: email
+        email: email,
+        userData: userData
     });
 
     // Check if user needs OTP verification
     // OTP verification is needed if is_otp_verified is 0, null, or undefined
+    console.log('🔍 OTP UTILITY: userData exists?', !!userData);
+    console.log('🔍 OTP UTILITY: userData.is_otp_verified =', userData?.is_otp_verified);
+    console.log('🔍 OTP UTILITY: userData.is_otp_verified === 0?', userData?.is_otp_verified === 0);
+    
     if (userData && userData.is_otp_verified === 0) {
         console.log('🔄 User needs OTP verification, opening VerifyEmailModal');
         
@@ -39,17 +44,27 @@ export const checkAndOpenOTPVerification = (userData, email) => {
         }
 
         // Open verify email modal
+        console.log('🔍 OTP UTILITY: Looking for verifyemail modal element...');
         const verifyModal = document.getElementById('verifyemail');
-        console.log('🔍 Looking for verifyemail modal:', verifyModal);
+        console.log('🔍 OTP UTILITY: verifyModal element found:', !!verifyModal);
+        console.log('🔍 OTP UTILITY: verifyModal element:', verifyModal);
         
         if (verifyModal) {
-            console.log('✅ VerifyEmailModal found, opening...');
-            const verifyBootstrapModal = new window.bootstrap.Modal(verifyModal);
-            verifyBootstrapModal.show();
-            console.log('🎉 VerifyEmailModal should now be visible');
-            return true; // OTP verification is needed
+            console.log('✅ OTP UTILITY: VerifyEmailModal found, opening...');
+            try {
+                const verifyBootstrapModal = new window.bootstrap.Modal(verifyModal);
+                console.log('🔍 OTP UTILITY: Bootstrap modal instance created:', verifyBootstrapModal);
+                verifyBootstrapModal.show();
+                console.log('🎉 OTP UTILITY: VerifyEmailModal should now be visible');
+                return true; // OTP verification is needed
+            } catch (modalError) {
+                console.error('❌ OTP UTILITY: Error opening modal:', modalError);
+                return false;
+            }
         } else {
-            console.error('❌ VerifyEmailModal element not found! Make sure VerifyEmailModal component is included in the page.');
+            console.error('❌ OTP UTILITY: VerifyEmailModal element not found! Make sure VerifyEmailModal component is included in the page.');
+            console.log('🔍 OTP UTILITY: Available elements with IDs containing "verify":', 
+                Array.from(document.querySelectorAll('[id*="verify"]')).map(el => el.id));
             return false;
         }
     } else {

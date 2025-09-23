@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { login as apiLogin } from '../api/auth.js';
+import { checkAndOpenOTPVerification } from '../utils/otpVerification.js';
 
 function getCsrf() {
     // Look for a <meta> tag in the HTML with name="csrf-token"
@@ -42,8 +43,12 @@ const LoginModal = () => {
         
         // Always store the actual token from API response (even if success: false)
         const token = data.body.token;
+        const userData = data.body.user;
+        const isOtpVerified = data.body.is_otp_verified;
         console.log('🔍 API Response - Token:', token);
-        console.log('🔍 API Response - User:', data.body.user);
+        console.log('🔍 API Response - User:', userData);
+        console.log('🔍 OTP Verification Status:', isOtpVerified);
+        console.log('🔍 Full API Response:', JSON.stringify(data, null, 2));
         
         try {
             localStorage.setItem('auth_token', token);
@@ -52,51 +57,58 @@ const LoginModal = () => {
             console.error('❌ Failed to save token:', e);
         }
         
-        // Use the actual user data from API and mark as verified
-        const userData = data.body.user;
-        const verifiedUserData = {
-            ...userData,
-            is_verify: 1,
-            is_otp_verified: 1
-        };
-        
+        // Store the actual user data from API (preserve original values)
         try {
-            localStorage.setItem('user_data', JSON.stringify(verifiedUserData));
-            console.log('✅ User data saved to localStorage:', verifiedUserData);
+            localStorage.setItem('user_data', JSON.stringify(userData));
+            console.log('✅ User data saved to localStorage:', userData);
         } catch (e) {
             console.error('❌ Failed to save user data:', e);
         }
-        
-        // Verify data was saved
-        const savedToken = localStorage.getItem('auth_token');
-        const savedUserData = localStorage.getItem('user_data');
-        console.log('🔍 Verification - Saved token:', savedToken);
-        console.log('🔍 Verification - Saved user data:', savedUserData);
 
         // Hide login modal
         const loginEl = document.getElementById('loginmodal');
         try { 
             window.bootstrap.Modal.getInstance(loginEl)?.hide(); 
+            // Set flag to indicate login modal was just closed
+            sessionStorage.setItem('loginModalClosed', Date.now().toString());
         } catch (_) {} 
 
-        // Dispatch custom event for header update
-        window.dispatchEvent(new CustomEvent('userLoggedIn'));
+        // Check if OTP verification is needed (regardless of success status)
+        if (isOtpVerified === 0) {
+            console.log('🔄 User needs OTP verification, opening modal...');
+            // Open OTP verification modal
+            checkAndOpenOTPVerification(userData, userData.email);
+            // Don't proceed with login or redirect - wait for OTP verification
+            return;
+        } else {
+            console.log('✅ User OTP is already verified, proceeding with login');
+            // Dispatch custom event for header update
+            window.dispatchEvent(new CustomEvent('userLoggedIn'));
 
-        // Add a small delay to ensure localStorage is saved before redirect
-        setTimeout(() => {
-            // Always redirect to home page
-            window.location.href = '/';
-        }, 100);
+            // Add a small delay to ensure localStorage is saved before redirect
+            setTimeout(() => {
+                // Redirect to home page
+                window.location.href = '/';
+            }, 100);
+        }
         
     } catch (err) { 
         // Only create dummy data if there's a real API error (network/server issue)
         console.log('⚠️ Login API error, but proceeding anyway:', err);
         
         // Check if we have response data (even if it's an error response)
+        // API client normalizes errors to { status, data } format
         if (err.data && err.data.body && err.data.body.token) {
             // We have API response data, use the real token and user data
             const token = err.data.body.token;
             const userData = err.data.body.user;
+            const isOtpVerified = err.data.body.is_otp_verified;
+            
+            console.log('🔍 Error Response - Status:', err.status);
+            console.log('🔍 Error Response - Token:', token);
+            console.log('🔍 Error Response - User:', userData);
+            console.log('🔍 Error Response - OTP Verification Status:', isOtpVerified);
+            console.log('🔍 Error Response - Full Data:', JSON.stringify(err.data, null, 2));
             
             try {
                 localStorage.setItem('auth_token', token);
@@ -105,15 +117,10 @@ const LoginModal = () => {
                 console.error('❌ Failed to save real token:', e);
             }
             
-            const verifiedUserData = {
-                ...userData,
-                is_verify: 1,
-                is_otp_verified: 1
-            };
-            
+            // Store the actual user data from API (preserve original values)
             try {
-                localStorage.setItem('user_data', JSON.stringify(verifiedUserData));
-                console.log('✅ Real user data saved from error response:', verifiedUserData);
+                localStorage.setItem('user_data', JSON.stringify(userData));
+                console.log('✅ Real user data saved from error response:', userData);
             } catch (e) {
                 console.error('❌ Failed to save real user data:', e);
             }
@@ -166,26 +173,55 @@ const LoginModal = () => {
             }
         }
         
-        // Verify data was saved
-        const savedToken = localStorage.getItem('auth_token');
-        const savedUserData = localStorage.getItem('user_data');
-        console.log('🔍 Verification (Error case) - Saved token:', savedToken);
-        console.log('🔍 Verification (Error case) - Saved user data:', savedUserData);
-        
         // Hide login modal
         const loginEl = document.getElementById('loginmodal');
         try { 
             window.bootstrap.Modal.getInstance(loginEl)?.hide(); 
+            // Set flag to indicate login modal was just closed
+            sessionStorage.setItem('loginModalClosed', Date.now().toString());
         } catch (_) {} 
 
-        // Dispatch custom event for header update
-        window.dispatchEvent(new CustomEvent('userLoggedIn'));
-
-        // Add a small delay to ensure localStorage is saved before redirect
-        setTimeout(() => {
-            // Always redirect to home page
-            window.location.href = '/';
-        }, 100);
+        // Check if we need OTP verification from error response
+        // API client normalizes errors to { status, data } format
+        console.log('🔍 DEBUG: Checking error response for OTP verification...');
+        console.log('🔍 DEBUG: err.data exists?', !!err.data);
+        console.log('🔍 DEBUG: err.data.body exists?', !!(err.data && err.data.body));
+        console.log('🔍 DEBUG: err.data.body.is_otp_verified =', err.data && err.data.body && err.data.body.is_otp_verified);
+        
+        if (err.data && err.data.body && err.data.body.is_otp_verified === 0) {
+            console.log('🔄 User needs OTP verification from error response, opening modal...');
+            const userData = err.data.body.user;
+            // Add is_otp_verified to userData since the utility expects it there
+            const userDataWithOtpStatus = {
+                ...userData,
+                is_otp_verified: err.data.body.is_otp_verified
+            };
+            
+            console.log('🔍 DEBUG: Original userData:', userData);
+            console.log('🔍 DEBUG: userDataWithOtpStatus:', userDataWithOtpStatus);
+            console.log('🔍 DEBUG: Calling checkAndOpenOTPVerification with userData:', userDataWithOtpStatus);
+            console.log('🔍 DEBUG: User email:', userData.email);
+            
+            const otpResult = checkAndOpenOTPVerification(userDataWithOtpStatus, userData.email);
+            console.log('🔍 DEBUG: checkAndOpenOTPVerification returned:', otpResult);
+            
+            // Don't proceed with login or redirect - wait for OTP verification
+            return;
+        } else if (err.data && err.data.body && err.data.body.is_otp_verified === 1) {
+            // User is verified, proceed with login
+            console.log('✅ User OTP is already verified from error response, proceeding with login');
+            window.dispatchEvent(new CustomEvent('userLoggedIn'));
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 100);
+        } else {
+            // No API response data or network error, proceed with dummy data
+            console.log('⚠️ No valid API response, proceeding with fallback login');
+            window.dispatchEvent(new CustomEvent('userLoggedIn'));
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 100);
+        }
     } finally {
         setSubmitting(false); 
         // Reset submitting state so button/loader is re-enabled
