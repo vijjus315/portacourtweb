@@ -586,6 +586,10 @@ const Home = () => {
     );
 };
 
+// Export as default for use in app.jsx
+export default Home;
+
+// Also mount directly for backward compatibility
 const mountEl = document.getElementById('react-home-root');
 if (mountEl) {
     const root = createRoot(mountEl);
